@@ -2,9 +2,8 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// Estilos utilizando styled-components
 const GameOverContainer = styled.div`
-  background-color: rgba(0, 0, 0, 0.8); /* Fondo oscuro semi-transparente */
+  background-color: rgba(0, 0, 0, 0.8);
   position: fixed;
   top: 0;
   left: 0;
@@ -37,8 +36,8 @@ const GameOver = ({ score, howWin }) => {
   return (
     <GameOverContainer>
       <MessageContainer>
-        <Title howWin={howWin}>
-          {howWin != "thief" ? 'Ganaron los policías' : 'Ganaron los ladrones'}
+        <Title policeWin={howWin !== "thief"}>
+          {howWin !== "thief" ? 'Ganaron los policías' : 'Ganaron los ladrones'}
         </Title>
         <FinalScore>Score: {score}</FinalScore>
       </MessageContainer>
@@ -47,4 +46,5 @@ const GameOver = ({ score, howWin }) => {
 };
 
 export default GameOver;
+
 

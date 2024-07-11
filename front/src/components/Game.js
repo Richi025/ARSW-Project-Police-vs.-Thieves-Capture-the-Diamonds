@@ -1,179 +1,221 @@
-import React, { useState, useEffect } from 'react';
+// src/components/Game.js
+import React, { useState, useEffect, useRef  } from 'react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import Player from './Player';
 import Diamond from './Diamond';
 import BaseThief from './BaseThief';
 import BasePolice from './BasePolice';
-import diamondsConfig from '../config/diamondsConfig';
-import obstaclesConfig from '../config/obstaclesConfig';
+import Obstacle from './Obstacle';
+import axios from 'axios';
+import config from '../config/config';
 import GameInfo from '../componetsStile/GameInfo';
 import GameOver from '../componetsStile/GameOver';
 
-function Game() {
-  const [playerPosition, setPlayerPosition] = useState({ top: 500, left: 50 });
-  const [thiefPosition, setThiefPosition] = useState({ top: 200, left: 50 });
-  const [playerDirection, setPlayerDirection] = useState("stayRight");
-  const [paso1, setPaso1] = useState(true);
+const Game = ({ player }) => {
+  const [gameState, setGameState] = useState([]);
+  const [players, setPlayers] = useState([player]);
+  const [playerDirection, setPlayerDirection] = useState(player.direction);
   const [thiefLives, setThiefLives] = useState(3);
-  const playerType = "police";
-  const [diamonds, setDiamonds] = useState(diamondsConfig);
   const [gameOver, setGameOver] = useState(false);
-  const [howWin, setHowWin] = useState("police");
-  const obstacles = obstaclesConfig;
+  const [howWin, setHowWin] = useState('police');
+  const [score, setScore] = useState(player.score);
+  const animationRef = useRef(null);
 
-  const basesThief = [
-    { id: 1, top: 0, left: 0, width: 100, height: 200 }, // Actualizado con width y height
-  ];
-
-  const basesPolice = [
-    { id: 1, top: 400, left: 700, width: 100, height: 200 }, // Actualizado con width y height
-  ];
-
-  const [score, setScore] = useState(0);
-
-  const isCollidingWithObstacle = (newPosition) => {
-    return obstacles.some(obstacle => {
-      return (
-        newPosition.top < obstacle.top + 50 &&
-        newPosition.top > obstacle.top - 30 &&
-        newPosition.left < obstacle.left + 50 &&
-        newPosition.left > obstacle.left - 30
-      );
-    });
-  };
-
-  const collectDiamond = (newPosition) => {
-    if (playerType === "police") {
-      return; // Si es policía, no recolecta diamantes
-    }
-    const collectedDiamond = diamonds.find(diamond => {
-      return (
-        newPosition.top < diamond.top + 30 &&
-        newPosition.top > diamond.top - 30 &&
-        newPosition.left < diamond.left + 30 &&
-        newPosition.left > diamond.left - 30
-      );
+  useEffect(() => {
+    const client = new Client({
+      brokerURL: `ws://localhost:8080/game-websocket`,
+      connectHeaders: {
+        login: 'user',
+        passcode: 'password'
+      },
+      debug: function (str) {
+        console.log(str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      webSocketFactory: () => new SockJS(config.socketUrl),
     });
 
-    if (collectedDiamond) {
-      setDiamonds(diamonds.filter(diamond => diamond.id !== collectedDiamond.id));
-      setScore(score + 100);
-    }
+    client.onConnect = () => {
+      console.log('Connected to WebSocket');
+      client.subscribe('/topic/game-state', (message) => {
+        const gameState = JSON.parse(message.body);
+        console.log('Received game state from backend:', gameState);
+        setGameState(Array.isArray(gameState) ? gameState : []);
+        logGameStateMatrix(gameState);
+      });
 
-    // Verificar condición de victoria de los ladrones
-    if (playerType === "thief" && diamonds.length === 0) {
-      setGameOver(true);
-      setHowWin("thief")
+      client.subscribe('/topic/players', (message) => {
+        const updatedPlayers = JSON.parse(message.body);
+        setPlayers(Array.isArray(updatedPlayers) ? updatedPlayers : []);
+      });
+    };
+
+    client.onStompError = (frame) => {
+      console.error('Broker reported error: ' + frame.headers['message']);
+      console.error('Additional details: ' + frame.body);
+    };
+
+    client.activate();
+
+    return () => {
+      client.deactivate();
+    };
+  }, [player]);
+
+  useEffect(() => {
+    const fetchGameState = async () => {
+      try {
+        const response = await axios.post(`${config.BASE_URL}/api/games/state?gameId=1`, { players: players });
+        console.log('Received game state from backend:', response.data);
+        setGameState(response.data.matrix ? response.data.matrix : []);
+        logGameStateMatrix(response.data.matrix);
+      } catch (error) {
+        console.error('Error fetching game state:', error);
+      }
+    };
+
+    fetchGameState();
+  }, [players]);
+
+  const logGameStateMatrix = (gameStateMatrix) => {
+    if (!Array.isArray(gameStateMatrix)) {
+      console.error('Invalid game state matrix:', gameStateMatrix);
+      return;
     }
+    let gameStateStr = '';
+    for (let row of gameStateMatrix) {
+      gameStateStr += row.join(' ') + '\n';
+    }
+    console.log('Game state matrix:\n' + gameStateStr);
   };
 
-  const isInBase = (newPosition, base) => {
-    return (
-      newPosition.top < base.top + base.height && 
-      newPosition.top > base.top - 30 &&
-      newPosition.left < base.left + base.width  && 
-      newPosition.left > base.left - 30
-    );
-  };
+  const handleKeyDown = (event) => {
+    if (gameState.length === 0) return; // Salir si gameState aún no está disponible
+    let { top, left } = player;
+    let newTop = top;
+    let newLeft = left;
+    let newDirection = playerDirection;
   
-  const handleKeyDown = (e) => {
-    let { top, left } = playerPosition;
-    const newPosition = { ...playerPosition };
-
-    switch (e.key) {
+    switch (event.key) {
       case 'ArrowUp':
-        newPosition.top = Math.max(top - 10, 0);
-        setPlayerDirection('up');
-        setPaso1(!paso1);
-        setTimeout(() => {
-          setPlayerDirection('stayUp');
-        }, 300);
+        newTop -= 10;
+        newDirection = 'up';
         break;
       case 'ArrowDown':
-        newPosition.top = Math.min(top + 10, 570);
-        setPlayerDirection('down');
-        setPaso1(!paso1);
-        setTimeout(() => {
-          setPlayerDirection('stayDown');
-        }, 300);
+        newTop += 10;
+        newDirection = 'down';
         break;
       case 'ArrowLeft':
-        newPosition.left = Math.max(left - 10, 0);
-        setPlayerDirection('left');
-        setPaso1(!paso1);
-        setTimeout(() => {
-          setPlayerDirection('stayLeft');
-        }, 300);
+        newLeft -= 10;
+        newDirection = 'left';
         break;
       case 'ArrowRight':
-        newPosition.left = Math.min(left + 10, 770);
-        setPlayerDirection('right');
-        setPaso1(!paso1);
-        setTimeout(() => {
-          setPlayerDirection('stayRight');
-        }, 300);
-        break;
-      case ' ':
-        // Captura de ladrón
-        if (playerType === "police" && Math.abs(newPosition.top - thiefPosition.top) < 30 && Math.abs(newPosition.left - thiefPosition.left) < 30) {
-          setThiefLives(thiefLives - 1);
-
-          setThiefPosition({ top: 300, left: 50 }); // Posición inicial del ladrón
-          if(thiefLives === 1){
-            setGameOver(true);
-            setHowWin("police");
-          }
-        }
+        newLeft += 10;
+        newDirection = 'right';
         break;
       default:
-        break;
+        return; // Ignorar otras teclas
     }
-
+  
+    setPlayerDirection(newDirection);
+  
+    // Comprobar que la nueva posición está dentro de los límites de la matriz y no colisiona con obstáculos
     if (
-      !isCollidingWithObstacle(newPosition) &&
-      !(playerType === 'police' && basesThief.some(base => isInBase(newPosition, base))) &&
-      !(playerType === 'thief' && basesPolice.some(base => isInBase(newPosition, base)))
+      newLeft >= 0 && newLeft < 800 && // Límites de la matriz en el eje X (ajustar según sea necesario)
+      newTop >= 0 && newTop < 600 && // Límites de la matriz en el eje Y (ajustar según sea necesario)
+      gameState[Math.floor(newTop)][Math.floor(newLeft)] !== 4
     ) {
-      setPlayerPosition(newPosition);
-      collectDiamond(newPosition);
+      animateMovement(newTop, newLeft);
     }
   };
+  
+  const animateMovement = (newTop, newLeft) => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+  
+    const animate = () => {
+      setPlayers(prevPlayers => {
+        if (!Array.isArray(prevPlayers)) return [];
+        return prevPlayers.map(p => {
+          if (p.id !== player.id) return p;
+  
+          const distanceX = newLeft - p.left;
+          const distanceY = newTop - p.top;
+  
+          if (Math.abs(distanceX) <= 1 && Math.abs(distanceY) <= 1) {
+            return { ...p, top: newTop, left: newLeft };
+          }
+  
+          const moveX = distanceX !== 0 ? distanceX / Math.abs(distanceX) : 0;
+          const moveY = distanceY !== 0 ? distanceY / Math.abs(distanceY) : 0;
+  
+          return { ...p, top: p.top + moveY, left: p.left + moveX };
+        });
+      });
+  
+      animationRef.current = requestAnimationFrame(animate);
+    };
+  
+    animate();
+  };
+  
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [player, playerDirection, gameState]);
+  
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [playerPosition, thiefPosition, diamonds, score, thiefLives]);
+  }, [player, playerDirection, gameState]);
+
+  if (gameState.length === 0) {
+    return <div>Loading game state...</div>;
+  }
 
   if (gameOver) {
-    return <GameOver score={score} win={howWin}/>;
+    return <GameOver score={score} howWin={howWin} />;
   }
 
   return (
     <>
-    <GameInfo score={score} thiefLives={thiefLives} />
-    <div className="game-container">
-      <Player top={playerPosition.top} left={playerPosition.left} direction={playerDirection} paso1={paso1} type={playerType} />
-      <Player top={thiefPosition.top} left={thiefPosition.left} direction={"stayRight"} paso1={paso1} type="thief" />
-      {diamonds.map(diamond => (
-        <Diamond key={diamond.id} top={diamond.top} left={diamond.left} />
-      ))}
-      {obstacles.map(obstacle => (
-        <div key={obstacle.id} className="obstacle" style={{ top: obstacle.top, left: obstacle.left }} />
-      ))}
-      {basesThief.map(baseThief => (
-        <BaseThief key={baseThief.id} top={baseThief.top} left={baseThief.left} />
-      ))}
-      {basesPolice.map(basePolice => (
-        <BasePolice key={basePolice.id} top={basePolice.top} left={basePolice.left} />
-      ))}
-      
-      
-    </div>
-    
-      
+      <GameInfo score={score} thiefLives={thiefLives} />
+      <div className="game-container">
+        {gameState.map((row, y) =>
+          row.map((cell, x) => {
+            switch (cell) {
+              case 1:
+                return <Player key={`player-${x}-${y}`} x={x} y={y} direction={playerDirection} paso1={true} type="police" />;
+              case 2:
+                return <Player key={`player-${x}-${y}`} x={x} y={y} direction={playerDirection} paso1={true} type="thief" />;
+              case 3:
+                return <Diamond key={`diamond-${x}-${y}`} x={x} y={y} />;
+              case 4:
+                return <Obstacle key={`obstacle-${x}-${y}`} x={x} y={y} />;
+              case 5:
+                return <BaseThief key={`baseThief-${x}-${y}`} x={x} y={y} />;
+              case 6:
+                return <BasePolice key={`basePolice-${x}-${y}`} x={x} y={y} />;
+              default:
+                return null;
+            }
+          })
+        )}
+      </div>
     </>
   );
-}
+};
 
 export default Game;

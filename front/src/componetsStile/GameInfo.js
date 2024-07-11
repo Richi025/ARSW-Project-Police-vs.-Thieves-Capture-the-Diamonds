@@ -4,10 +4,9 @@ import styled from 'styled-components';
 import Score from './Score';
 import Lives from './Lives';
 
-// Estilos utilizando styled-components
 const GameInfoContainer = styled.div`
   background-color: white;
-  border: 2px  white;
+  border: 2px white;
   padding: 15px;
   margin-top: 30px;
   position: absolute;

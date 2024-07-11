@@ -42,7 +42,7 @@ import thiefStayDown2 from '../images/thief/stayDown2.png';
 import thiefStayLeft2 from '../images/thief/stayLeft2.png';
 import thiefStayUp2 from '../images/thief/stayUp2.png';
 
-function Player({ top, left, direction, paso1, type }) {
+const Player = ({ x, y, direction, paso1, type }) => {
   const policeImages1 = {
     down: policeDown,
     left: policeLeft,
@@ -94,17 +94,17 @@ function Player({ top, left, direction, paso1, type }) {
   return (
     <img
       src={imagenesAusar[direction]}
-      alt={`${type}`}
+      alt={type}
       style={{
         position: 'absolute',
-        top: `${top}px`,
-        left: `${left}px`,
+        top: `${y}px`,
+        left: `${x}px`,
         width: '30px',
         height: '30px',
         zIndex: 3,
       }}
     />
   );
-}
+};
 
 export default Player;

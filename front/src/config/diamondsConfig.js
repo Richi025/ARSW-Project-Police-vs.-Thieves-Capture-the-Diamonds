@@ -1,3 +1,4 @@
+
 const diamonds = [
     { id: 1, top: 165, left: 215 },
     { id: 2, top: 165, left: 365 },
