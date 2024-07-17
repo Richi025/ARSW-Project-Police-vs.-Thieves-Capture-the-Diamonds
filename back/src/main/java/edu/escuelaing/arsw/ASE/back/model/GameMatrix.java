@@ -52,7 +52,7 @@ public class GameMatrix {
             int y = diamond[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
                 matrix[y][x] = 9; // 9 para diamantes
-                System.out.println("Placed diamond at: (" + y + ", " + x + ")");
+                //System.out.println("Placed diamond at: (" + y + ", " + x + ")");
             }
         }
     }
@@ -76,7 +76,7 @@ public class GameMatrix {
             int y = obstacle[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
                 matrix[y][x] = 10; // 10 para obstáculos
-                System.out.println("Placed obstacle at: (" + y + ", " + x + ")");
+                //System.out.println("Placed obstacle at: (" + y + ", " + x + ")");
             }
         }
     }
@@ -91,7 +91,7 @@ public class GameMatrix {
             int y = base[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
                 matrix[y][x] = 11; // 11 para bases de ladrones
-                System.out.println("Placed thief base at: (" + y + ", " + x + ")");
+                //System.out.println("Placed thief base at: (" + y + ", " + x + ")");
             }
         }
 
@@ -104,7 +104,7 @@ public class GameMatrix {
             int y = base[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
                 matrix[y][x] = 12; // 12 para bases de policías
-                System.out.println("Placed police base at: (" + y + ", " + x + ")");
+                //System.out.println("Placed police base at: (" + y + ", " + x + ")");
             }
         }
     }
@@ -125,7 +125,7 @@ public class GameMatrix {
                 int playerId = player.getId();
                 if (playerId >= 1 && playerId <= 8) {
                     matrix[y][x] = playerId; // ID del jugador (1-8) en la posición
-                    System.out.println("Placed player " + playerId + " at: (" + y + ", " + x + ")");
+                    //System.out.println("Placed player " + playerId + " at: (" + y + ", " + x + ")");
                 }
             }
         }

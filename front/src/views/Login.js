@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWebSocket } from '../WebSocketContext';
 
 const thiefPositions = [
     { top: 5, left: 5 },
@@ -20,6 +21,7 @@ const Login = () => {
     const [isThief, setIsThief] = useState(true);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const { setSocket } = useWebSocket();
 
     const handlePlay = () => {
         if (!name.trim()) {
@@ -38,6 +40,13 @@ const Login = () => {
             isThief: isThief
         };
 
+        const socket = new WebSocket('ws://localhost:8080/lobby');
+        socket.onopen = () => {
+            console.log('WebSocket connection established');
+            socket.send(JSON.stringify({ type: 'JOIN', ...playerData }));
+        };
+
+        setSocket(socket);
         navigate('/lobby', { state: { playerData: playerData } });
     };
 

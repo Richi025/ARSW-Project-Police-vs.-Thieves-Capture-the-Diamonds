@@ -56,7 +56,7 @@ public class WebSocketController extends TextWebSocketHandler {
         }
 
         String payload = message.getPayload();
-        System.out.println("Message received: " + payload);
+        //System.out.println("Message received: " + payload);
         Map<String, Object> data = gson.fromJson(payload, Map.class);
 
         if ("JOIN".equals(data.get("type"))) {
@@ -113,6 +113,7 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("top", player.getTop());
                         playerStatus.put("left", player.getLeft());
                         playerStatus.put("isThief", player.isThief());
+                        playerStatus.put("direction", player.getDirection());
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
                         }
@@ -127,7 +128,7 @@ public class WebSocketController extends TextWebSocketHandler {
         message.put("players", playersStatus);
 
         String jsonMessage = gson.toJson(message);
-        System.out.println("Sending update to all sessions: " + jsonMessage);
+        //System.out.println("Sending update to all sessions: " + jsonMessage);
         sendToAllSessions(jsonMessage);
     }
 
@@ -156,7 +157,7 @@ public class WebSocketController extends TextWebSocketHandler {
         message.put("matrix", gameState.getMatrix());
         message.put("players", currentPlayers);
         String jsonMessage = gson.toJson(message);
-        System.out.println("Sending start game message to all sessions: " + jsonMessage);
+        //System.out.println("Sending start game message to all sessions: " + jsonMessage);
         sendToAllSessions(jsonMessage);
     }
 
@@ -166,6 +167,7 @@ public class WebSocketController extends TextWebSocketHandler {
         int top = ((Double) data.get("top")).intValue();
         int left = ((Double) data.get("left")).intValue();
         boolean isThief = (Boolean) data.get("isThief");
+
         Player player = new Player(playerId, playerName, top, left, isThief);
 
         synchronized (players) {
@@ -193,15 +195,20 @@ public class WebSocketController extends TextWebSocketHandler {
         int previousLeft = ((Double) data.get("previousLeft")).intValue();
         int top = ((Double) data.get("top")).intValue();
         int left = ((Double) data.get("left")).intValue();
-    
+        String direction = (String) data.get("direction");
+
         // Verificar que los datos recibidos son correctos
-        System.out.println("Recibiendo movimiento del jugador:" + ", "  + playerId + ", "  + top + ", "  + left);
+        System.out.println("Recibiendo movimiento del jugador:" + ", "  + playerId + ", "  + top + ", "  + left + ", " + direction);
     
         synchronized (players) {
             Player player = players.get(session.getId());
+            System.out.println(session.getId());
+            System.out.println(player);
+
             if (player != null) {
                 player.setTop(top);
                 player.setLeft(left);
+                player.setDirection(direction);
                 gameService.updatePlayerPosition(player);
             }
         }
@@ -251,6 +258,7 @@ public class WebSocketController extends TextWebSocketHandler {
                     Player player;
                     synchronized (players) {
                         player = players.get(session.getId());
+                        //System.out.println(player);
                     }
                     if (player != null) {
                         Map<String, Object> playerStatus = new HashMap<>();
@@ -259,6 +267,10 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("top", player.getTop());
                         playerStatus.put("left", player.getLeft());
                         playerStatus.put("isThief", player.isThief());
+                        playerStatus.put("direction", player.getDirection());
+
+                        //System.out.println("Enviando movimiento del jugador:" + ", " + player.getDirection());
+
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
                         }

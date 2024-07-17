@@ -43,6 +43,7 @@ import thiefStayLeft2 from '../images/thief/stayLeft2.png';
 import thiefStayUp2 from '../images/thief/stayUp2.png';
 
 const Player = ({ x, y, direction, paso1, type }) => {
+  //console.log('Player props:', { x, y, direction, paso1, type });
   const policeImages1 = {
     down: policeDown,
     left: policeLeft,
@@ -90,6 +91,8 @@ const Player = ({ x, y, direction, paso1, type }) => {
   const playerImages1 = type === 'police' ? policeImages1 : thiefImages1;
   const playerImages2 = type === 'police' ? policeImages2 : thiefImages2;
   const imagenesAusar = paso1 ? playerImages1 : playerImages2;
+
+  //console.log('Player props:', { x, y, direction, paso1, type, image: imagenesAusar[direction] });
 
   return (
     <img

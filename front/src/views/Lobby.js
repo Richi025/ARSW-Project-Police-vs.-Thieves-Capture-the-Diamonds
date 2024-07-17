@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { useWebSocket } from '../WebSocketContext';
 
 const StyledLobbyWrapper = styled.div`
   display: flex;
@@ -39,77 +40,35 @@ const Lobby = () => {
   const [isReady, setIsReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const socketRef = useRef(null);
-  const currentPlayer = location.state?.playerData;
+  const { playerData } = location.state;
+  const { socket } = useWebSocket();
 
   useEffect(() => {
-    if (!currentPlayer) {
+    if (!playerData || !socket) {
       navigate('/');
       return;
     }
 
-    const connectWebSocket = () => {
-      if (socketRef.current) {
-        return;  // Ya existe una conexión WebSocket, no crear una nueva
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'UPDATE_PLAYERS') {
+        setPlayers(data.players);
+      } else if (data.type === 'START_GAME') {
+        navigate('/game', { state: { initialMatrix: data.matrix, currentPlayer: playerData, players: data.players } });
       }
-
-      const socket = new WebSocket('ws://localhost:8080/lobby');
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        console.log('WebSocket connection established');
-        socket.send(JSON.stringify({ type: 'JOIN', ...currentPlayer }));
-      };
-
-      socket.onmessage = (event) => {
-        console.log('Message received from server:', event.data);
-        const data = JSON.parse(event.data);
-        if (data.type === 'UPDATE_PLAYERS') {
-          console.log('Updated players:', data.players);
-          if (data.players && data.players.length > 0) {
-            setPlayers(data.players);
-          } else {
-            console.warn('No player information received');
-            setPlayers([]);  // Clear the players state if no players are received
-          }
-        } else if (data.type === 'START_GAME') {
-          console.log('Received START_GAME message');
-          console.log('Received START_GAME message');
-          console.log('Initial Matrix:', data.matrix);
-          console.log('Players:', data.players);
-          navigate('/game', { state: { initialMatrix: data.matrix, currentPlayer: currentPlayer, players: data.players} });
-        }
-      };
-
-      socket.onclose = (event) => {
-        console.log('WebSocket connection closed:', event);
-        if (!event.wasClean) {
-          console.error('WebSocket error:', event);
-          setTimeout(connectWebSocket, 1000);  // Retry connection after 1 second
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        socket.close();
-      };
-
-      return () => {
-        console.log('Closing WebSocket connection');
-        if (socketRef.current) {
-          socketRef.current.close();
-        }
-      };
     };
 
-    connectWebSocket();
-  }, [navigate, currentPlayer]);
+    return () => {
+      if (socket) {
+        socket.onmessage = null;
+      }
+    };
+  }, [navigate, playerData, socket]);
 
   const handleReady = () => {
     setIsReady(true);
-    if (socketRef.current) {
-      console.log('Sending PLAYER_READY message');
-      socketRef.current.send(JSON.stringify({ type: 'PLAYER_READY' }));
+    if (socket) {
+      socket.send(JSON.stringify({ type: 'PLAYER_READY' }));
     }
   };
 

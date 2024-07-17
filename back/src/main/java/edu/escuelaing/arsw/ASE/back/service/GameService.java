@@ -27,6 +27,7 @@ public class GameService {
         if (player != null) {
             player.setLeft(playerMove.getLeft());
             player.setTop(playerMove.getTop());
+            player.setDirection(playerMove.getDirection());
             gameMatrix.placePlayers(players);
         }
         return gameMatrix;

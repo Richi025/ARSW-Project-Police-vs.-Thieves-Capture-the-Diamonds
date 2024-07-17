@@ -6,7 +6,15 @@ public class Player {
     private int top;
     private int left;
     private boolean isThief;
+    private String direction;
 
+    public String getDirection() {
+        return direction;
+    }
+
+    public void setDirection(String direction) {
+        this.direction = direction;
+    }
 
     private boolean ready = false;
 
@@ -24,6 +32,7 @@ public class Player {
         this.top = top;
         this.left = left;
         this.isThief = isThief;
+        this.direction = "down";
 
     }
 

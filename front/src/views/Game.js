@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-
+import { useWebSocket } from '../WebSocketContext';
 import BasePolice from '../components/BasePolice';
 import BaseThief from '../components/BaseThief';
 import Diamond from '../components/Diamond';
@@ -26,94 +26,33 @@ const StyledGameBoard = styled.div`
 
 const Game = () => {
   const location = useLocation();
-  const { initialMatrix, currentPlayer, players: initialPlayers } = location.state || {};
-  const [matrix, setMatrix] = useState(initialMatrix);
-  const [player, setPlayer] = useState(currentPlayer);
-  const [players, setPlayers] = useState(initialPlayers);
-  const wsChannelRef = useRef(null);
+  const { initialMatrix, currentPlayer, players: initialPlayers } = location.state;
+  const { socket } = useWebSocket();
 
-  class WSChannel {
-    constructor(URL, callback) {
-      this.URL = URL;
-      this.wsocket = new WebSocket(URL);
-      this.wsocket.onopen = (evt) => this.onOpen(evt);
-      this.wsocket.onmessage = (evt) => this.onMessage(evt);
-      this.wsocket.onerror = (evt) => this.onError(evt);
-      this.wsocket.onclose = (evt) => this.onClose(evt);
-      this.receivef = callback;
-      this.pingInterval = null;
-    }
-    onOpen(evt) {
-      console.log("WebSocket connection established:", evt);
-      this.startPing();
-    }
-    onMessage(evt) {
-      console.log("Message received from server:", evt.data);
-      this.receivef(evt.data);
-    }
-    onError(evt) {
-      console.error("WebSocket error:", evt);
-      this.reconnect();
-    }
-    onClose(evt) {
-      console.log("WebSocket connection closed:", evt);
-      this.reconnect();
-    }
-    send(data) {
-      console.log("sending:", data);
-      this.wsocket.send(data);
-    }
-    close() {
-      this.stopPing();
-      this.wsocket.close();
-    }
-    reconnect() {
-      this.stopPing();
-      console.log("Reconnecting WebSocket...");
-      setTimeout(() => {
-        this.wsocket = new WebSocket(this.URL);
-        this.wsocket.onopen = (evt) => this.onOpen(evt);
-        this.wsocket.onmessage = (evt) => this.onMessage(evt);
-        this.wsocket.onerror = (evt) => this.onError(evt);
-        this.wsocket.onclose = (evt) => this.onClose(evt);
-      }, 1000);
-    }
-    startPing() {
-      if (this.pingInterval) return;
-      this.pingInterval = setInterval(() => {
-        if (this.wsocket.readyState === WebSocket.OPEN) {
-          this.wsocket.send(JSON.stringify({ type: 'PING' }));
-        }
-      }, 30000);
-    }
-    stopPing() {
-      if (this.pingInterval) {
-        clearInterval(this.pingInterval);
-        this.pingInterval = null;
-      }
-    }
-  }
+  const [player, setPlayer] = useState(currentPlayer);
+  const [paso1, setPaso1] = useState(true);
+  const [matrix, setMatrix] = useState(initialMatrix);
+  const [players, setPlayers] = useState(initialPlayers);
 
   useEffect(() => {
     const handleWSMessage = (msg) => {
       const data = JSON.parse(msg);
-      console.log("Received WebSocket message:", data);
       if (data.type === 'UPDATE_GAME_STATE') {
-        console.log("Updating game state with data:", data);
         setMatrix(data.matrix);
-        setPlayers(data.players || []); // Asegurarnos de que players nunca sea undefined
+        setPlayers(data.players);
       }
     };
-  
-    wsChannelRef.current = new WSChannel('ws://localhost:8080/lobby', handleWSMessage);
-  
+
+    if (socket) {
+      socket.onmessage = (event) => handleWSMessage(event.data);
+    }
+
     return () => {
-      if (wsChannelRef.current) {
-        wsChannelRef.current.close();
+      if (socket) {
+        socket.onmessage = null;
       }
     };
-  }, []);
-  
+  }, [socket]);
 
   const CELL_SIZE = 20;
 
@@ -148,15 +87,25 @@ const Game = () => {
     const newPlayer = { ...player, top: newTop, left: newLeft, direction };
     setPlayer(newPlayer);
 
-    wsChannelRef.current.send(JSON.stringify({
-      type: 'PLAYER_MOVE',
-      id: newPlayer.id,
-      previousTop: previousPosition.top,
-      previousLeft: previousPosition.left,
-      top: newPlayer.top,
-      left: newPlayer.left,
-      direction: newPlayer.direction,
-    }));
+    if (socket) {
+      socket.send(JSON.stringify({
+        type: 'PLAYER_MOVE',
+        id: newPlayer.id,
+        previousTop: previousPosition.top,
+        previousLeft: previousPosition.left,
+        top: newPlayer.top,
+        left: newPlayer.left,
+        direction: newPlayer.direction,
+      }));
+    }
+
+    setPaso1(!paso1);
+    setTimeout(() => {
+      setPlayer(prevPlayer => ({
+        ...prevPlayer,
+        direction: `stay${direction.charAt(0).toUpperCase() + direction.slice(1)}`,
+      }));
+    }, 300);
 
     event.preventDefault();
   };
@@ -167,13 +116,12 @@ const Game = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [player]);
+
   const renderMatrix = () => {
     if (!matrix || !Array.isArray(players)) {
-      console.log("Matrix or players is invalid");
-      console.log("Players:", players);
       return null;
     }
-  
+
     const components = [];
     for (let y = 0; y < matrix.length; y++) {
       for (let x = 0; x < matrix[y].length; x++) {
@@ -195,16 +143,16 @@ const Game = () => {
             break;
           default:
             if (value >= 1 && value <= 8) {
-              const player = players.find(p => p.id === value);
-              if (player) {
+              const currentPlayer = players.find(p => p.id === value);
+              if (currentPlayer) {
                 components.push(
                   <Player
                     key={`player-${x}-${y}`}
                     x={posX}
                     y={posY}
-                    direction={player.direction}
-                    paso1={true}
-                    type={player.isThief ? 'thief' : 'police'}
+                    direction={currentPlayer.direction}
+                    paso1={paso1}
+                    type={currentPlayer.isThief ? 'thief' : 'police'}
                   />
                 );
               }
@@ -215,7 +163,6 @@ const Game = () => {
     }
     return components;
   };
-  
 
   return (
     <StyledGameWrapper>
