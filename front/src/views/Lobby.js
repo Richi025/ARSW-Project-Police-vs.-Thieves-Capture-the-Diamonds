@@ -1,39 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
 import { useWebSocket } from '../WebSocketContext';
-
-const StyledLobbyWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #282c34;
-  color: white;
-`;
-
-const StyledLobby = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const StyledTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-`;
-
-const StyledTh = styled.th`
-  border: 1px solid white;
-  padding: 10px;
-`;
-
-const StyledTd = styled.td`
-  border: 1px solid white;
-  padding: 10px;
-  text-align: center;
-`;
+import './Lobby.css'; // Importamos un archivo CSS para los estilos adicionales
 
 const Lobby = () => {
   const [players, setPlayers] = useState([]);
@@ -73,42 +41,44 @@ const Lobby = () => {
   };
 
   return (
-    <StyledLobbyWrapper>
-      <StyledLobby>
+    <div className="lobby-wrapper">
+      <div className="lobby">
         <h1>Lobby</h1>
-        <StyledTable>
+        <table className="table">
           <thead>
             <tr>
-              <StyledTh>ID</StyledTh>
-              <StyledTh>Name</StyledTh>
-              <StyledTh>Top</StyledTh>
-              <StyledTh>Left</StyledTh>
-              <StyledTh>Type</StyledTh>
-              <StyledTh>Status</StyledTh>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Top</th>
+              <th>Left</th>
+              <th>Type</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {players.length > 0 ? (
               players.map((player, index) => (
                 <tr key={index}>
-                  <StyledTd>{player.id}</StyledTd>
-                  <StyledTd>{player.name}</StyledTd>
-                  <StyledTd>{player.top}</StyledTd>
-                  <StyledTd>{player.left}</StyledTd>
-                  <StyledTd>{player.isThief ? 'Thief' : 'Police'}</StyledTd>
-                  <StyledTd>{player.isReady ? '✔️ Ready' : '❌ Not Ready'}</StyledTd>
+                  <td>{player.id}</td>
+                  <td>{player.name}</td>
+                  <td>{player.top}</td>
+                  <td>{player.left}</td>
+                  <td>{player.isThief ? 'Thief' : 'Police'}</td>
+                  <td>{player.isReady ? '✔️ Ready' : '❌ Not Ready'}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <StyledTd colSpan="6">No players available</StyledTd>
+                <td colSpan="6">No players available</td>
               </tr>
             )}
           </tbody>
-        </StyledTable>
-        <button onClick={handleReady} disabled={isReady}>Ready</button>
-      </StyledLobby>
-    </StyledLobbyWrapper>
+        </table>
+        <div className="button-container">
+          <button onClick={handleReady} disabled={isReady} className="ready-button">Ready</button>
+        </div>
+      </div>
+    </div>
   );
 };
 

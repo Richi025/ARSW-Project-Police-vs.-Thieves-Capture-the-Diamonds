@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../WebSocketContext';
+import loginImage from '../images/login.jpg';
+import './Login.css'; // Importamos un archivo CSS para los estilos adicionales
 
 const thiefPositions = [
     { top: 5, left: 5 },
@@ -29,7 +31,7 @@ const Login = () => {
             return;
         }
 
-        const id = Math.floor(Math.random() * 8) + 1; // Assign an ID between 1 and 8
+        const id = Math.floor(Math.random() * 8) + 1;
         const position = isThief ? thiefPositions[id % thiefPositions.length] : policePositions[id % policePositions.length];
 
         const playerData = {
@@ -51,37 +53,58 @@ const Login = () => {
     };
 
     return (
-        <div>
-            <h2>Login</h2>
-            <div>
-                <label>
-                    Name:
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                </label>
-            </div>
-            {error && <div style={{ color: 'red' }}>{error}</div>}
-            <div>
-                <label>
-                    <input
-                        type="radio"
-                        value="thief"
-                        checked={isThief}
-                        onChange={() => setIsThief(true)}
-                    />
-                    Thief
-                </label>
-                <label>
-                    <input
-                        type="radio"
-                        value="police"
-                        checked={!isThief}
-                        onChange={() => setIsThief(false)}
-                    />
-                    Police
-                </label>
-            </div>
-            <div>
-                <button onClick={handlePlay}>Play</button>
+        <div className="login-container" style={{
+            height: '100vh',
+            width: '80vw',
+            backgroundImage: `url(${loginImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            color: 'white'
+        }}>
+            <div className="login-form" style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: '20px', borderRadius: '10px' }}>
+                <h2>Login</h2>
+                <div>
+                    <label>
+                        Name:
+                        <input
+                            type="text"
+                            placeholder="Enter your name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="name-input" // Añadimos una clase para los estilos del input
+                        />
+                    </label>
+                </div>
+                {error && <div style={{ color: 'red' }}>{error}</div>}
+                <div>
+                    <label style={{ marginRight: '10px' }}>
+                        <input
+                            type="radio"
+                            value="thief"
+                            checked={isThief}
+                            onChange={() => setIsThief(true)}
+                            style={{ marginRight: '5px' }}
+                        />
+                        Thief
+                    </label>
+                    <label>
+                        <input
+                            type="radio"
+                            value="police"
+                            checked={!isThief}
+                            onChange={() => setIsThief(false)}
+                            style={{ marginRight: '5px' }}
+                        />
+                        Police
+                    </label>
+                </div>
+                <div className="play-button-container">
+                    <button onClick={handlePlay} className="play-button">Play</button>
+                </div>
             </div>
         </div>
     );

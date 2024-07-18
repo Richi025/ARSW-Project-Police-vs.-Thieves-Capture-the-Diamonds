@@ -1,28 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import styled from 'styled-components';
 import { useWebSocket } from '../WebSocketContext';
 import BasePolice from '../components/BasePolice';
 import BaseThief from '../components/BaseThief';
 import Diamond from '../components/Diamond';
 import Obstacle from '../components/Obstacle';
 import Player from '../components/Player';
-
-const StyledGameWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: black;
-  color: white;
-`;
-
-const StyledGameBoard = styled.div`
-  position: relative;
-  width: 800px;
-  height: 800px;
-  background-color: green;
-`;
+import './Game.css'; // Importamos un archivo CSS para los estilos adicionales
 
 const Game = () => {
   const location = useLocation();
@@ -30,7 +14,6 @@ const Game = () => {
   const { socket } = useWebSocket();
 
   const [player, setPlayer] = useState(currentPlayer);
-  const [paso1, setPaso1] = useState(true);
   const [matrix, setMatrix] = useState(initialMatrix);
   const [players, setPlayers] = useState(initialPlayers);
 
@@ -55,6 +38,27 @@ const Game = () => {
   }, [socket]);
 
   const CELL_SIZE = 20;
+
+  const isCollidingWithObstacle = (newTop, newLeft) => {
+    const obstacleSize = 50; // Tamaño del obstáculo (ajustar según tu configuración)
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length; x++) {
+        if (matrix[y][x] === 10) { // Código para los obstáculos
+          const obstacleTop = y * CELL_SIZE;
+          const obstacleLeft = x * CELL_SIZE;
+          if (
+            newTop < obstacleTop + obstacleSize - 10 &&
+            newTop > obstacleTop - 20 &&
+            newLeft < obstacleLeft + obstacleSize - 10 &&
+            newLeft > obstacleLeft - 20
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
 
   const handleKeyDown = (event) => {
     const { key } = event;
@@ -83,8 +87,12 @@ const Game = () => {
         return;
     }
 
+    if (isCollidingWithObstacle(newTop * CELL_SIZE, newLeft * CELL_SIZE)) {
+      return; // No permitir movimiento si colisiona con un obstáculo
+    }
+
     const previousPosition = { top: player.top, left: player.left };
-    const newPlayer = { ...player, top: newTop, left: newLeft, direction };
+    const newPlayer = { ...player, top: newTop, left: newLeft, direction, paso1: !player.paso1 };
     setPlayer(newPlayer);
 
     if (socket) {
@@ -96,10 +104,10 @@ const Game = () => {
         top: newPlayer.top,
         left: newPlayer.left,
         direction: newPlayer.direction,
+        paso1: newPlayer.paso1 // Enviar nuevo atributo
       }));
     }
 
-    setPaso1(!paso1);
     setTimeout(() => {
       setPlayer(prevPlayer => ({
         ...prevPlayer,
@@ -151,7 +159,7 @@ const Game = () => {
                     x={posX}
                     y={posY}
                     direction={currentPlayer.direction}
-                    paso1={paso1}
+                    paso1={currentPlayer.paso1}
                     type={currentPlayer.isThief ? 'thief' : 'police'}
                   />
                 );
@@ -165,15 +173,36 @@ const Game = () => {
   };
 
   return (
-    <StyledGameWrapper>
-      <div>
-        <h1>Game</h1>
-        <StyledGameBoard>
-          {renderMatrix()}
-        </StyledGameBoard>
-        <p>Current Player: {JSON.stringify(player, null, 2)}</p>
+    <div className="game-container">
+      <div className="scoreboard">
+        <h2>Scoreboard</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((player, index) => (
+              <tr key={index}><td>{player.id}</td><td>{player.name}</td><td>{player.score || 0}</td></tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </StyledGameWrapper>
+      <div className="game-wrapper">
+        <div className="game-board">
+          {renderMatrix()}
+        </div>
+      </div>
+      <div className="controls">
+        <button>Button 1</button>
+        <button>Button 2</button>
+        <button>Button 3</button>
+      </div>
+      <p>Current Player: {JSON.stringify(player, null, 2)}</p>
+    </div>
   );
 };
 

@@ -8,59 +8,11 @@
   z-index: 1; /* Asegura que el fondo .App esté en el nivel más bajo */
 }
 
-.game-container {
-  width: 800px;
-  height: 600px;
-  background-image: url('./images/ice1_z.jpg'); /* Ajusta la ruta según sea necesario */
-  background-size: cover; /* Para asegurarse de que la imagen cubra toda el área */
-  background-position: center; /* Centrar la imagen */
-  background-repeat: no-repeat; /* Evitar que la imagen se repita */
-  position: relative; /* Necesario si quieres que .game-container esté sobre el fondo .App */
-  z-index: 1; /* Coloca .game-container sobre el fondo .App */
-  overflow: hidden;
-}
-.baseThief {
-  width: 100px;
-  height: 200px;
-  background-color: rgb(65, 60, 60);
-  position: absolute;
-  z-index: 2; /* Coloca .baseThief encima de .game-container */
-}
 
-.basePolice {
-  width: 100px;
-  height: 200px;
-  background-color: rgb(29, 9, 204);
-  position: absolute;
-  z-index: 2; /* Coloca .basePolice encima de .game-container */
-}
 
-.player {
-  width: 30px;
-  height: 30px;
-  position: absolute;
-  z-index: 3;
-}
 
-.diamond {
-  width: 20px;
-  height: 20px;
-  background-color: lightblue;
-  position: absolute;
-}
 
-.obstacle {
-  width: 50px;
-  height: 50px;
-  position: absolute;
-  z-index: 2;
-}
 
-.score {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  color: white;
-  font-size: 24px;
-  z-index: 3;
-}
+
+
+

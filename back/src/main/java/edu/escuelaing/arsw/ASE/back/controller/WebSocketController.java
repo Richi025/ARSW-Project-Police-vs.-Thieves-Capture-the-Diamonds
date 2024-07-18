@@ -114,6 +114,7 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("left", player.getLeft());
                         playerStatus.put("isThief", player.isThief());
                         playerStatus.put("direction", player.getDirection());
+                        playerStatus.put("paso1", player.getPaso1()); // Incluir nuevo atributo
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
                         }
@@ -196,6 +197,7 @@ public class WebSocketController extends TextWebSocketHandler {
         int top = ((Double) data.get("top")).intValue();
         int left = ((Double) data.get("left")).intValue();
         String direction = (String) data.get("direction");
+        boolean paso1 = (Boolean) data.get("paso1"); // Recibir nuevo atributo
 
         // Verificar que los datos recibidos son correctos
         System.out.println("Recibiendo movimiento del jugador:" + ", "  + playerId + ", "  + top + ", "  + left + ", " + direction);
@@ -209,6 +211,7 @@ public class WebSocketController extends TextWebSocketHandler {
                 player.setTop(top);
                 player.setLeft(left);
                 player.setDirection(direction);
+                player.setPaso1(paso1); // Actualizar nuevo atributo
                 gameService.updatePlayerPosition(player);
             }
         }

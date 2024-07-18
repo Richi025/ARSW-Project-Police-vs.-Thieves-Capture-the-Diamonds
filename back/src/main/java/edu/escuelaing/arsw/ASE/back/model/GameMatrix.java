@@ -4,7 +4,7 @@ import java.util.List;
 
 public class GameMatrix {
     private int[][] matrix;
-    private int rows = 40;
+    private int rows = 30;
     private int cols = 40; // Ajustado para asegurar que la matriz es cuadrada
 
     public GameMatrix() {
