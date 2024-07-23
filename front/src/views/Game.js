@@ -7,6 +7,7 @@ import Diamond from '../components/Diamond';
 import Obstacle from '../components/Obstacle';
 import PlayerWithLabel from '../components/PlayerWithLabel'; // Importar el nuevo componente
 import './Game.css'; // Importamos un archivo CSS para los estilos adicionales
+import { RESThostURL, WShostURL } from './URLFunctions'; // Importa las funciones
 
 const Game = () => {
   const location = useLocation();
@@ -274,7 +275,7 @@ const Game = () => {
 
   const fetchTopPlayers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/players/top5');
+      const response = await fetch(`${RESThostURL()}/players/top`);
       const data = await response.json();
       if (Array.isArray(data)) {
         setTopPlayers(data);
@@ -418,8 +419,6 @@ const Game = () => {
       </div>
       <div className="controls">
         <button onClick={fetchTopPlayers}>view scores</button>
-        <button>Button 2</button>
-        <button>Button 3</button>
       </div>
       <p>Time Left: {timeLeft} seconds</p>
     </div>

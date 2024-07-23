@@ -75,7 +75,7 @@ Once you have the cloned project in your repository. Follow the steps below to l
 
 #### Run FrontEnd React Js
 
-1. Open a terminal and enter the folder where I clone the repository and enter the BoardReact folder.
+1. Open a terminal and enter the folder where I clone the repository and enter the front folder.
 
 2. Use the following command to install dependencies
     ```
@@ -91,7 +91,7 @@ Once you have the cloned project in your repository. Follow the steps below to l
 
     http://localhost:3000/ 
 
-    ![alt text](image.png)
+    ![alt text](images/local3000.png)
 
 ## Proyect Structure
 
@@ -99,36 +99,133 @@ Once you have the cloned project in your repository. Follow the steps below to l
 
 **The application is being implemented**
 
-- SpringApplication.java : Main application class for the Spring Boot application.
+- GameApplication.java : Main application class for the Spring Boot application.
 
-- Controller: 
+- Config: 
 
-   - REST controller for handling mouse movement data.
+   - WebSocketConfig: This class enables WebSocket and registers WebSocket handlers.
+
+- Cotroller: 
+
+    - LoginController:  This controller manages player data assignment for thieves and police officers.
+
+    - PlayerController: This controller provides endpoints to retrieve player information.
+
+    - WebSocketController: This class manages player connections, game state, and interactions via WebSocket.
+    
 
 - Model: 
 
-    - Represents a mouse movement data object.
+    - GameMatrix: This includes initializing the matrix, placing static diamonds, obstacles, and bases.
+
+    - Player: This class manages the player, their attributes, and the methods to request and change these attributes.
+
+- Repository: 
+
+    -   PlayerRepository: This interface provides methods for interacting with the Player collection in MongoDB.
+
+- Service: 
+
+    - GameService: This method finds the player by their ID, updates their position and direction, and then updates the game matrix with the new player positions.
+    - PlayerService: This service provides methods to find top players by score, save players, and update player scores.
 
 ### Run FrontEnd React Js
 
-**The application is being implemented**
+- Game.js: Component that handles the game logic and renders the game.
 
+- Lobby.js: Component that displays the game lobby.
 
-
-#### Server (API):
-
+- Login.js: Component that handles login.
 
 
 ## Architectural Design
 
-**The application is being implemented**
+## Class diagram.
 
-![alt text](images/imageDesing.png)
+![alt text](images/classDiagram.png)
+
+## Architecture diagram.
+
+![alt text](images/ArqDiagram.png)
+
+### Diagram Description:
+
+### Browser
+
+- **User**: Represents the user interacting with the application through the browser.
+- **Login Component**: React component that handles the login process.
+- **Lobby Component**: React component that displays the game lobby.
+- **Game Component**: React component that handles game logic.
+- **WebSocket Channel**: WebSocket channel used for real-time communication between the client and the server.
+
+### EC2
+
+- **JVM**
+- **Spring**
+  - **AppStarter**: Main class that starts the Spring Boot application.
+  - **WebSocketConfig**: WebSocket configuration to enable and register WebSocket handlers.
+  - **WebSocketController**: WebSocket controller that handles WebSocket connections and events.
+  - **LoginController**: REST controller that handles login requests and provides player data.
+  - **PlayerController**: REST controller that provides endpoints to retrieve player information.
+  - **GameService**: Service that handles game logic and player positions.
+  - **PlayerService**: Service that manages player-related operations such as saving and updating scores.
+  - **PlayerRepository**: Repository that interacts with the MongoDB database to perform CRUD operations on players.
+  - **GameMatrix**: Class representing the game matrix and managing the positions of elements in the game.
+  - **Player**: Class representing a player in the game.
+
+### MongoDB
+
+- **PlayerData**: Collection in MongoDB that stores player data.
+
+## Deployment diagram.
+
+![alt text](images/DespliegueDiagram.png)
+
+### Deployment Diagram Description:
+
+### AWS:
+
+#### EC2_Instance:
+- **Terminal 1**: Runs the Spring Boot application (JAR) on port 8080.
+- **Terminal 2**: Runs the built React application on port 3000.
+
+### Spring_Application:
+
+- **AppStarter**: Main class that starts the Spring Boot application.
+- **WebSocketConfig**: WebSocket configuration to enable and register WebSocket handlers.
+- **WebSocketController**: WebSocket controller that handles WebSocket connections and events.
+- **LoginController**: REST controller that handles login requests and provides player data.
+- **PlayerController**: REST controller that provides endpoints to retrieve player information.
+- **GameService**: Service that handles game logic and player positions.
+- **PlayerService**: Service that manages player-related operations such as saving and updating scores.
+- **PlayerRepository**: Repository that interacts with the MongoDB database to perform CRUD operations on players.
+- **GameMatrix**: Class representing the game matrix and managing the positions of elements in the game.
+- **Player**: Class representing a player in the game.
+
+### React_Application:
+
+- **Login Component**: React component that handles the login process.
+- **Lobby Component**: React component that displays the game lobby.
+- **Game Component**: React component that handles game logic.
+- **WebSocket Channel**: WebSocket channel used for real-time communication between the client and the server.
+
+### MongoDB:
+
+- **PlayerData**: Collection in MongoDB that stores player data.
 
 
-### Data Flow
 
-**The application is being implemented**
+## Data Flow
+
++ The user communicates with the React components via HTTP.
++ The React components **(Login, Lobby, Game)** allow navigation and updating the game state.
++ The **Game Component** uses a WebSocket channel **(WSChannel)** to communicate with the **WebSocketController** on the server, ensuring real-time communication.
++ The **REST controllers (LoginController and PlayerController)** provide REST APIs that the React components can use to retrieve and send data.
++ The services **(GameService and PlayerService)** handle game logic and player-related operations.
++ The **PlayerRepository** interacts with the MongoDB database to perform CRUD operations on players.
++ **AppStarter** runs the Spring Boot application on port 8080.
++ **Browser** runs the React components on port 3000.
+
 
 ## AWS
 
@@ -137,13 +234,16 @@ Once you have the cloned project in your repository. Follow the steps below to l
 ## Built with
 
 * [Maven](https://maven.apache.org/) - Dependency management
-* [java](https://www.java.com/es/) - Programming language
-* [Spring boot](https://start.spring.io/) - Framework
+* [Java](https://www.java.com/es/) - Programming language
+* [Spring Boot](https://start.spring.io/) - Framework
 
 ### Technologies Used
-+ **Java:** Programming language.
-+ **Spring Boot:** Framework for building the application.
-+ **React:** Is an open source Javascript library designed for creating user interfaces.
+- **Java:** Programming language.
+- **Spring Boot:** Framework for building the application.
+- **React:** Open-source JavaScript library for building user interfaces.
+- **Docker:** Platform for developing, shipping, and running applications in containers.
+- **Jacoco:** Code coverage library for Java.
+- **SonarQube:** Continuous inspection tool for code quality.
 
 ## Versioned
 
@@ -155,7 +255,7 @@ We use [Git](https://github.com/) for version control. For available versions, s
 
 ## Date
 
-Friday, June 28, 2024
+Wednesday, July 23, 2024
 
 ## License
 

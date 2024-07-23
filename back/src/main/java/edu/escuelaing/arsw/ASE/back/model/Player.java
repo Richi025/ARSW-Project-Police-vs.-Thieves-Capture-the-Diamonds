@@ -5,6 +5,9 @@ import java.util.Random;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+/**
+ * This class manages the player, their attributes, and the methods to request and change these attributes.
+ */
 @Document("Players")
 public class Player {
 
@@ -21,10 +24,10 @@ public class Player {
     private String direction;
     private boolean paso1;
     private int score;
-    private int lives; // Nuevo atributo para las vidas
+    private int lives; 
     private boolean ready;
 
-    // Método estático para generar un ID de 8 dígitos
+
     private static int generate8DigitId() {
         Random random = new Random();
         return 10000000 + random.nextInt(90000000);
@@ -40,10 +43,10 @@ public class Player {
         this.direction = "down";
         this.paso1 = true;
         this.score = 0;
-        this.lives = isThief ? 3 : 0; // Inicializar las vidas solo si es ladrón
+        this.lives = isThief ? 3 : 0; 
     }
 
-    // Constructor sin parámetros
+
     public Player() {
         this.mongoId = generate8DigitId();
         this.id = 0;
@@ -54,7 +57,7 @@ public class Player {
         this.direction = "down";
         this.paso1 = true;
         this.score = 0;
-        this.lives = 0; // Inicializar con 0 vidas
+        this.lives = 0; 
         this.ready = false;
     }
 

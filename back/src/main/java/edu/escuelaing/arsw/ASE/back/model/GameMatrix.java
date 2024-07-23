@@ -2,11 +2,19 @@ package edu.escuelaing.arsw.ASE.back.model;
 
 import java.util.List;
 
+/**
+ * Represents the game matrix for the game.
+ * This class manages the grid-based layout of the game, including the positions of players, diamonds, obstacles, and bases.
+ */
 public class GameMatrix {
     private int[][] matrix;
     private int rows = 30;
-    private int cols = 40; // Ajustado para asegurar que la matriz es cuadrada
+    private int cols = 40; 
 
+    /**
+     * Constructs a new GameMatrix and initializes the matrix with static elements.
+     * This includes initializing the matrix, placing static diamonds, obstacles, and bases.
+     */
     public GameMatrix() {
         if (matrix == null) {
             this.matrix = new int[rows][cols];
@@ -29,14 +37,23 @@ public class GameMatrix {
         }
     }
 
+
+    /**
+     * Initializes the matrix with default values.
+     * Sets all positions in the matrix to 0.
+     */
     private void initializeMatrix() {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                matrix[i][j] = 0; // Inicializar todas las celdas como vacías
+                matrix[i][j] = 0; 
             }
         }
     }
 
+    /**
+     * Places static diamonds in predefined positions within the matrix.
+     * Diamonds are represented by the value 9 in the matrix.
+     */
     private void placeStaticDiamonds() {
         int[][] diamonds = {
             {8, 10}, {8, 18}, {6, 15}, {15, 20}, {1, 33},
@@ -51,12 +68,16 @@ public class GameMatrix {
             int x = diamond[1];
             int y = diamond[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
-                matrix[y][x] = 9; // 9 para diamantes
-                //System.out.println("Placed diamond at: (" + y + ", " + x + ")");
+                matrix[y][x] = 9; 
+
             }
         }
     }
 
+    /**
+     * Places static obstacles in predefined positions within the matrix.
+     * Obstacles are represented by the value 10 in the matrix.
+     */    
     private void placeStaticObstacles() {
         int[][] obstacles = {
             {7, 7}, {17, 17}, {22, 27}, {5, 7}, {2, 7},
@@ -75,12 +96,15 @@ public class GameMatrix {
             int x = obstacle[1];
             int y = obstacle[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
-                matrix[y][x] = 10; // 10 para obstáculos
-                //System.out.println("Placed obstacle at: (" + y + ", " + x + ")");
+                matrix[y][x] = 10;
             }
         }
     }
 
+    /**
+     * Places static bases in predefined positions within the matrix.
+     * Thief bases are represented by the value 11, and police bases by the value 12 in the matrix.
+     */    
     private void placeStaticBases() {
         int[][] basesThief = {
             {0, 0}
@@ -90,8 +114,8 @@ public class GameMatrix {
             int x = base[1];
             int y = base[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
-                matrix[y][x] = 11; // 11 para bases de ladrones
-                //System.out.println("Placed thief base at: (" + y + ", " + x + ")");
+                matrix[y][x] = 11; 
+
             }
         }
 
@@ -103,12 +127,17 @@ public class GameMatrix {
             int x = base[1];
             int y = base[0];
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
-                matrix[y][x] = 12; // 12 para bases de policías
-                //System.out.println("Placed police base at: (" + y + ", " + x + ")");
+                matrix[y][x] = 12;
             }
         }
     }
-
+    
+    /**
+     * Places players in the matrix based on their positions.
+     * Clears previous player positions before placing new ones.
+     *
+     * @param players the list of players to place in the matrix
+     */
     public void placePlayers(List<Player> players) {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
@@ -124,8 +153,8 @@ public class GameMatrix {
             if (y >= 0 && y < rows && x >= 0 && x < cols) {
                 int playerId = player.getId();
                 if (playerId >= 1 && playerId <= 8) {
-                    matrix[y][x] = playerId; // ID del jugador (1-8) en la posición
-                    //System.out.println("Placed player " + playerId + " at: (" + y + ", " + x + ")");
+                    matrix[y][x] = playerId; 
+;
                 }
             }
         }

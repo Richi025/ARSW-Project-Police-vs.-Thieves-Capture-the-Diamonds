@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useWebSocket } from '../WebSocketContext';
 import './Lobby.css'; // Importamos un archivo CSS para los estilos adicionales
+import { RESThostURL, WShostURL } from './URLFunctions'; // Importa las funciones
 
 const Lobby = () => {
   const [players, setPlayers] = useState([]);
@@ -12,6 +13,7 @@ const Lobby = () => {
   const location = useLocation();
   const { playerData } = location.state;
   const { socket } = useWebSocket();
+
 
   useEffect(() => {
     if (!playerData || !socket) {
@@ -27,6 +29,7 @@ const Lobby = () => {
         navigate('/game', { state: { initialMatrix: data.matrix, currentPlayer: playerData, players: data.players } });
       }
     };
+
 
     return () => {
       if (socket) {
@@ -44,7 +47,7 @@ const Lobby = () => {
 
   const fetchTopPlayers = async () => {
     try {
-      const response = await fetch('http://localhost:8080/players/top5');
+      const response = await fetch(`${RESThostURL()}/players/top`);
       const data = await response.json();
       if (Array.isArray(data)) {
         setTopPlayers(data);

@@ -23,6 +23,10 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * WebSocket controller for handling WebSocket connections and game interactions.
+ * This class manages player connections, game state, and interactions via WebSocket.
+ */
 @Component
 public class WebSocketController extends TextWebSocketHandler {
 
@@ -31,9 +35,9 @@ public class WebSocketController extends TextWebSocketHandler {
     private static final ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Player> players = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, int[]> initialPositions = new ConcurrentHashMap<>();
-    private static final int totalPlayers = 2;  // Número total de jugadores necesarios para comenzar el juego
+    private static final int totalPlayers = 2;  
     private static final Gson gson = new Gson();
-    private static final GameMatrix gameState = new GameMatrix(); // Única instancia compartida de GameMatrix
+    private static final GameMatrix gameState = new GameMatrix(); 
     private boolean gameOver = false;
     private String winner = "";
 
@@ -41,11 +45,18 @@ public class WebSocketController extends TextWebSocketHandler {
     private GameService gameService;
 
     private Timer timer;
-    private int timeLeft = 180; // Tiempo en segundos
+    private int timeLeft = 180; 
 
     @Autowired
     private PlayerService playerService;
 
+    /**
+     * Called after a new WebSocket connection is established.
+     * Adds the session to the list of active sessions and initializes player status.
+     *
+     * @param session the new WebSocket session
+     * @throws Exception if an error occurs
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         System.out.println("Connection established: " + session.getId());
@@ -53,15 +64,23 @@ public class WebSocketController extends TextWebSocketHandler {
             sessions.add(session);
         }
         synchronized (playerReadyStatus) {
-            playerReadyStatus.put(session.getId(), false); // Asegúrate de que el jugador no esté listo inicialmente
+            playerReadyStatus.put(session.getId(), false); 
         }
         synchronized (playerNames) {
-            playerNames.put(session.getId(), "Unknown"); // Nombre predeterminado
+            playerNames.put(session.getId(), "Unknown"); 
         }
 
         updatePlayersStatus();
     }
 
+    /**
+     * Handles incoming WebSocket messages.
+     * Processes messages related to player actions such as joining, moving, and capturing thieves.
+     *
+     * @param session the WebSocket session
+     * @param message the incoming WebSocket message
+     * @throws Exception if an error occurs
+     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         if (!session.isOpen() || gameOver) {
@@ -69,7 +88,6 @@ public class WebSocketController extends TextWebSocketHandler {
         }
 
         String payload = message.getPayload();
-        //System.out.println("Message received: " + payload);
         Map<String, Object> data = gson.fromJson(payload, Map.class);
 
         if ("JOIN".equals(data.get("type"))) {
@@ -93,6 +111,14 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Called after a WebSocket connection is closed.
+     * Removes the session from the list of active sessions and updates player status.
+     *
+     * @param session the WebSocket session
+     * @param status the close status
+     * @throws Exception if an error occurs
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         System.out.println("Connection closed: " + session.getId() + ", Status: " + status);
@@ -112,6 +138,11 @@ public class WebSocketController extends TextWebSocketHandler {
         updatePlayersStatus();
     }
 
+    /**
+     * Updates the status of all players and sends the updated status to all sessions.
+     *
+     * @throws Exception if an error occurs
+     */
     private void updatePlayersStatus() throws Exception {
         List<Map<String, Object>> playersStatus = new ArrayList<>();
         synchronized (sessions) {
@@ -129,9 +160,9 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("left", player.getLeft());
                         playerStatus.put("isThief", player.isThief());
                         playerStatus.put("direction", player.getDirection());
-                        playerStatus.put("paso1", player.getPaso1()); // Incluir nuevo atributo
-                        playerStatus.put("score", player.getScore()); // Incluir nuevo atributo
-                        playerStatus.put("lives", player.getLives()); // Incluir vidas
+                        playerStatus.put("paso1", player.getPaso1()); 
+                        playerStatus.put("score", player.getScore()); 
+                        playerStatus.put("lives", player.getLives()); 
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
                         }
@@ -146,10 +177,14 @@ public class WebSocketController extends TextWebSocketHandler {
         message.put("players", playersStatus);
 
         String jsonMessage = gson.toJson(message);
-        //System.out.println("Sending update to all sessions: " + jsonMessage);
         sendToAllSessions(jsonMessage);
     }
 
+    /**
+     * Checks if all players are ready to start the game.
+     *
+     * @return true if all players are ready, false otherwise
+     */
     private boolean allPlayersReady() {
         synchronized (playerReadyStatus) {
             boolean allReady = playerReadyStatus.size() >= totalPlayers &&
@@ -159,13 +194,18 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Starts the game by initializing players and game state, and sends the start game message to all sessions.
+     *
+     * @throws Exception if an error occurs
+     */
     private void startGame() throws Exception {
         List<Player> currentPlayers;
         synchronized (players) {
             currentPlayers = new ArrayList<>(players.values());
         }
         gameService.initializePlayers(currentPlayers);
-        gameState.placePlayers(currentPlayers);  // Colocar los jugadores en la matriz de juego
+        gameState.placePlayers(currentPlayers); 
 
         for (Player player : currentPlayers) {
             initialPositions.put(player.getId(), new int[]{player.getTop(), player.getLeft()});
@@ -174,17 +214,18 @@ public class WebSocketController extends TextWebSocketHandler {
         startTimer();
 
         String initialMatrixJson = convertMatrixToJson(gameState);
-        //System.out.println("Initial Game Matrix: " + initialMatrixJson); // Print the initial game matrix to the console
 
         Map<String, Object> message = new HashMap<>();
         message.put("type", "START_GAME");
         message.put("matrix", gameState.getMatrix());
         message.put("players", currentPlayers);
         String jsonMessage = gson.toJson(message);
-        //System.out.println("Sending start game message to all sessions: " + jsonMessage);
         sendToAllSessions(jsonMessage);
     }
 
+    /**
+     * Starts the game timer and schedules timer updates.
+     */
     private void startTimer() {
         timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -199,6 +240,9 @@ public class WebSocketController extends TextWebSocketHandler {
         }, 1000, 1000);
     }
 
+    /**
+     * Updates the game time and checks for game over conditions.
+     */
     private void updateTime() {
         synchronized (sessions) {
             if (gameOver) {
@@ -261,6 +305,9 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Sends a timer update message to all sessions.
+     */
     private void sendTimerUpdate() {
         Map<String, Object> message = new HashMap<>();
         message.put("type", "TIMER_UPDATE");
@@ -269,6 +316,9 @@ public class WebSocketController extends TextWebSocketHandler {
         sendToAllSessions(jsonMessage);
     }
 
+    /**
+     * Sends a game over message to all sessions.
+     */
     private void sendGameOverMessage() {
         timer.cancel();
         updatePlayerScores();
@@ -279,12 +329,22 @@ public class WebSocketController extends TextWebSocketHandler {
         sendToAllSessions(jsonMessage);
     }
 
+    /**
+     * Updates the scores of all players.
+     */
     private void updatePlayerScores() {
         for (Player player : players.values()) {
             playerService.updateScore(player.getMongoId(), player.getScore());
         }
     }
 
+
+    /**
+     * Handles a join message from a player and updates the player list.
+     *
+     * @param data the message data
+     * @param session the WebSocket session
+     */
     private void handleJoinMessage(Map<String, Object> data, WebSocketSession session) {
         int playerId = ((Double) data.get("id")).intValue();
         String playerName = (String) data.get("name");
@@ -297,12 +357,11 @@ public class WebSocketController extends TextWebSocketHandler {
 
 
         synchronized (players) {
-            // Ensure the player ID is unique
             players.values().removeIf(p -> p.getId() == playerId);
             players.put(session.getId(), player);
         }
         synchronized (playerNames) {
-            playerNames.put(session.getId(), playerName); // Actualizar nombre del jugador
+            playerNames.put(session.getId(), playerName);
         }
 
         System.out.println("Player joined: " + player);
@@ -315,6 +374,14 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+
+    /**
+     * Handles a player move message and updates the game state.
+     *
+     * @param data the message data
+     * @param session the WebSocket session
+     * @throws Exception if an error occurs
+     */    
     private void handlePlayerMoveMessage(Map<String, Object> data, WebSocketSession session) throws Exception {
         int playerId = ((Double) data.get("id")).intValue();
         int previousTop = ((Double) data.get("previousTop")).intValue();
@@ -322,9 +389,8 @@ public class WebSocketController extends TextWebSocketHandler {
         int top = ((Double) data.get("top")).intValue();
         int left = ((Double) data.get("left")).intValue();
         String direction = (String) data.get("direction");
-        boolean paso1 = (Boolean) data.get("paso1"); // Recibir nuevo atributo
+        boolean paso1 = (Boolean) data.get("paso1"); 
 
-        // Verificar que los datos recibidos son correctos
         System.out.println("Recibiendo movimiento del jugador:" + ", "  + playerId + ", "  + top + ", "  + left + ", " + direction);
     
         synchronized (players) {
@@ -336,15 +402,15 @@ public class WebSocketController extends TextWebSocketHandler {
                 player.setTop(top);
                 player.setLeft(left);
                 player.setDirection(direction);
-                player.setPaso1(paso1); // Actualizar nuevo atributo
+                player.setPaso1(paso1); 
 
                 if (player.isThief() && player.getLives() == 0) {
-                    return; // Ladrones sin vidas no pueden moverse
+                    return; 
                 }
 
-                if (gameState.getMatrix()[top][left] == 9  && player.isThief() ) { // Si el jugador recoge un diamante
+                if (gameState.getMatrix()[top][left] == 9  && player.isThief() ) { 
                     player.setScore(player.getScore() + 100);
-                    gameState.setPosition(top, left, 0); // Eliminar el diamante de la matriz
+                    gameState.setPosition(top, left, 0); 
                 }
 
                 gameService.updatePlayerPosition(player);
@@ -352,15 +418,21 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     
         synchronized (gameState) {
-            // Limpiar la posición anterior en la matriz
+            
             gameState.setPosition(previousTop, previousLeft, 0); 
-            // Actualizar la nueva posición en la matriz
             gameState.setPosition(top, left, playerId); 
         }
     
         sendGameStateToAllSessions();
     }
     
+    /**
+     * Handles a capture thief message and updates the game state.
+     *
+     * @param data the message data
+     * @param session the WebSocket session
+     * @throws Exception if an error occurs
+     */    
     private void handleCaptureThiefMessage(Map<String, Object> data, WebSocketSession session) throws Exception {
         int policeId = ((Double) data.get("policeId")).intValue();
         int thiefId = ((Double) data.get("thiefId")).intValue();
@@ -393,17 +465,16 @@ public class WebSocketController extends TextWebSocketHandler {
                     thief.setTop(initialPosition[0]);
                     thief.setLeft(initialPosition[1]);
     
-                    // Actualizar la posición en la matriz
                     synchronized (gameState) {
-                        gameState.setPosition(previousTop, previousLeft, 0); // Limpiar la posición anterior
-                        gameState.setPosition(initialPosition[0], initialPosition[1], thiefId); // Establecer nueva posición
+                        gameState.setPosition(previousTop, previousLeft, 0); 
+                        gameState.setPosition(initialPosition[0], initialPosition[1], thiefId);
                     }
     
                     gameService.updatePlayerPosition(thief);
                     sendInitialPositions(thief);
                 }
     
-                // Sumar 100 puntos al policía que captura
+
                 if (police != null) {
                     police.setScore(police.getScore() + 100);
                     gameService.updatePlayerPosition(police);
@@ -414,6 +485,12 @@ public class WebSocketController extends TextWebSocketHandler {
         sendGameStateToAllSessions();
     }
 
+
+    /**
+     * Sends the initial positions of a thief to all sessions.
+     *
+     * @param thief the thief player
+     */
     private void sendInitialPositions(Player thief) {
         Map<String, Object> message = new HashMap<>();
         message.put("type", "INITIAL_POSITION");
@@ -434,10 +511,21 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Converts the game matrix to JSON format.
+     *
+     * @param matrix the game matrix
+     * @return the JSON representation of the game matrix
+     */    
     private String convertMatrixToJson(GameMatrix matrix) {
         return gson.toJson(matrix);
     }
 
+    /**
+     * Sends a message to all open sessions.
+     *
+     * @param message the message to send
+     */    
     private synchronized void sendToAllSessions(String message) {
         List<WebSocketSession> closedSessions = new ArrayList<>();
         synchronized (sessions) {
@@ -454,11 +542,15 @@ public class WebSocketController extends TextWebSocketHandler {
                     closedSessions.add(session);
                 }
             }
-            // Remove closed sessions from the list
             sessions.removeAll(closedSessions);
         }
     }
 
+    /**
+     * Sends an updated player list to all sessions.
+     *
+     * @throws Exception if an error occurs
+     */    
     private void sendPlayerListUpdate() throws Exception {
         List<Map<String, Object>> playersStatus = new ArrayList<>();
         synchronized (sessions) {
@@ -467,7 +559,7 @@ public class WebSocketController extends TextWebSocketHandler {
                     Player player;
                     synchronized (players) {
                         player = players.get(session.getId());
-                        //System.out.println(player);
+
                     }
                     if (player != null) {
                         Map<String, Object> playerStatus = new HashMap<>();
@@ -478,7 +570,6 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("isThief", player.isThief());
                         playerStatus.put("direction", player.getDirection());
 
-                        //System.out.println("Enviando movimiento del jugador:" + ", " + player.getDirection());
 
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
@@ -499,15 +590,18 @@ public class WebSocketController extends TextWebSocketHandler {
 
         sendToAllSessions(jsonMessage);
     }
-
+    
+    /**
+     * Sends the updated game state to all sessions.
+     *
+     * @throws Exception if an error occurs
+     */
     private void sendGameStateToAllSessions() throws Exception {
         Map<String, Object> message = new HashMap<>();
         message.put("type", "UPDATE_GAME_STATE");
         message.put("matrix", gameState.getMatrix());
-        message.put("players", new ArrayList<>(players.values())); // Asegurarse de que siempre se envíen los jugadores
+        message.put("players", new ArrayList<>(players.values())); 
         String jsonMessage = gson.toJson(message);
-    
-        //System.out.println("Enviando estado del juego a todas las sesiones:" + jsonMessage);
     
         sendToAllSessions(jsonMessage);
     }

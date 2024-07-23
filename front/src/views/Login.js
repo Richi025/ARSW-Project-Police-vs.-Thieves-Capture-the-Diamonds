@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../WebSocketContext';
 import loginImage from '../images/login.jpg';
 import './Login.css';
+import { RESThostURL, WShostURL } from './URLFunctions'; // Importa las funciones
 
 const Login = () => {
     const [name, setName] = useState('');
@@ -18,7 +19,7 @@ const Login = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8080/login/getPlayerData?isThief=${isThief}`);
+            const response = await fetch(`${RESThostURL()}/login/getPlayerData?isThief=${isThief}`);
             if (!response.ok) {
                 throw new Error('No available positions');
             }
@@ -27,7 +28,7 @@ const Login = () => {
             playerData.name = name.trim();
             playerData.isThief = isThief;
 
-            const socket = new WebSocket('ws://localhost:8080/lobby');
+            const socket = new WebSocket(WShostURL());
             socket.onopen = () => {
                 console.log('WebSocket connection established');
                 socket.send(JSON.stringify({ type: 'JOIN', ...playerData }));
