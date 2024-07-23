@@ -5,17 +5,22 @@ import BasePolice from '../components/BasePolice';
 import BaseThief from '../components/BaseThief';
 import Diamond from '../components/Diamond';
 import Obstacle from '../components/Obstacle';
-import Player from '../components/Player';
+import PlayerWithLabel from '../components/PlayerWithLabel'; // Importar el nuevo componente
 import './Game.css'; // Importamos un archivo CSS para los estilos adicionales
 
 const Game = () => {
   const location = useLocation();
   const { initialMatrix, currentPlayer, players: initialPlayers } = location.state;
   const { socket } = useWebSocket();
-
   const [player, setPlayer] = useState(currentPlayer);
   const [matrix, setMatrix] = useState(initialMatrix);
   const [players, setPlayers] = useState(initialPlayers);
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutos en segundos
+  const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState('');
+  const [showGameOver, setShowGameOver] = useState(false);
+  const [topPlayers, setTopPlayers] = useState([]);
+  const [showTopPlayers, setShowTopPlayers] = useState(false);
 
   useEffect(() => {
     const handleWSMessage = (msg) => {
@@ -23,6 +28,14 @@ const Game = () => {
       if (data.type === 'UPDATE_GAME_STATE') {
         setMatrix(data.matrix);
         setPlayers(data.players);
+      } else if (data.type === 'INITIAL_POSITION') {
+        handleInitialPositionUpdate(data);
+      } else if (data.type === 'TIMER_UPDATE') {
+        setTimeLeft(data.timeLeft);
+      } else if (data.type === 'GAME_OVER') {
+        setGameOver(true);
+        setWinner(data.winner);
+        setShowGameOver(true);
       }
     };
 
@@ -37,13 +50,26 @@ const Game = () => {
     };
   }, [socket]);
 
+  const handleInitialPositionUpdate = (data) => {
+    const updatedPlayers = players.map(p => {
+      if (p.id === data.id) {
+        return { ...p, top: data.top, left: data.left };
+      }
+      return p;
+    });
+    setPlayers(updatedPlayers);
+    if (player.id === data.id) {
+      setPlayer(prev => ({ ...prev, top: data.top, left: data.left }));
+    }
+  };
+
   const CELL_SIZE = 20;
 
   const isCollidingWithObstacle = (newTop, newLeft) => {
-    const obstacleSize = 50; // Tamaño del obstáculo (ajustar según tu configuración)
+    const obstacleSize = 50;
     for (let y = 0; y < matrix.length; y++) {
       for (let x = 0; x < matrix[y].length; x++) {
-        if (matrix[y][x] === 10) { // Código para los obstáculos
+        if (matrix[y][x] === 10) {
           const obstacleTop = y * CELL_SIZE;
           const obstacleLeft = x * CELL_SIZE;
           if (
@@ -60,11 +86,101 @@ const Game = () => {
     return false;
   };
 
+  const isCollidingWithPlayer = (newTop, newLeft) => {
+    for (const otherPlayer of players) {
+      if (otherPlayer.id !== player.id && otherPlayer.top === newTop && otherPlayer.left === newLeft) {
+        return otherPlayer;
+      }
+    }
+    return null;
+  };
+
+  const isCollidingWithDiamond = (newTop, newLeft) => {
+    const diamondSize = 20;
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length; x++) {
+        if (matrix[y][x] === 9) {
+          const diamondTop = y * CELL_SIZE;
+          const diamondLeft = x * CELL_SIZE;
+          if (
+            newTop < diamondTop + diamondSize &&
+            newTop > diamondTop - CELL_SIZE &&
+            newLeft < diamondLeft + diamondSize &&
+            newLeft > diamondLeft - CELL_SIZE
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const isCollidingWithBase = (newTop, newLeft) => {
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length; x++) {
+        if (matrix[y][x] === 11 && !player.isThief) {
+          const baseTop = y * CELL_SIZE;
+          const baseLeft = x * CELL_SIZE;
+          if (
+            newTop < baseTop + CELL_SIZE + 180 &&
+            newTop > baseTop - CELL_SIZE - 30 &&
+            newLeft < baseLeft + CELL_SIZE + 80 &&
+            newLeft > baseLeft - CELL_SIZE - 30
+          ) {
+            return true;
+          }
+        }
+        if (matrix[y][x] === 11 && player.isThief) {
+          const baseTop = y * CELL_SIZE;
+          const baseLeft = x * CELL_SIZE;
+          if (
+            newTop < baseTop + CELL_SIZE &&
+            newTop > baseTop - CELL_SIZE &&
+            newLeft < baseLeft + CELL_SIZE &&
+            newLeft > baseLeft - CELL_SIZE
+          ) {
+            return true;
+          }
+        }
+        if (matrix[y][x] === 12 && player.isThief) {
+          const baseTop = y * CELL_SIZE;
+          const baseLeft = x * CELL_SIZE;
+          if (
+            newTop < baseTop + CELL_SIZE + 200 &&
+            newTop > baseTop - CELL_SIZE &&
+            newLeft < baseLeft + CELL_SIZE + 100 &&
+            newLeft > baseLeft - CELL_SIZE
+          ) {
+            return true;
+          }
+        }
+        if (matrix[y][x] === 12 && !player.isThief) {
+          const baseTop = y * CELL_SIZE;
+          const baseLeft = x * CELL_SIZE;
+          if (
+            newTop < baseTop + CELL_SIZE &&
+            newTop > baseTop - CELL_SIZE &&
+            newLeft < baseLeft + CELL_SIZE &&
+            newLeft > baseLeft - CELL_SIZE
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
   const handleKeyDown = (event) => {
     const { key } = event;
     let newTop = player.top;
     let newLeft = player.left;
     let direction = player.direction;
+
+    if (gameOver || (player.isThief && player.lives === 0)) {
+      return;
+    }
 
     switch (key) {
       case 'ArrowUp':
@@ -83,12 +199,30 @@ const Game = () => {
         newLeft = Math.min(player.left + 1, matrix[0].length - 1);
         direction = 'right';
         break;
+      case ' ':
+        if (!player.isThief) {
+          handleCapture();
+        }
+        return;
       default:
         return;
     }
 
     if (isCollidingWithObstacle(newTop * CELL_SIZE, newLeft * CELL_SIZE)) {
-      return; // No permitir movimiento si colisiona con un obstáculo
+      return;
+    }
+
+    if (isCollidingWithBase(newTop * CELL_SIZE, newLeft * CELL_SIZE)) {
+      return;
+    }
+
+    if (!player.isThief && isCollidingWithDiamond(newTop * CELL_SIZE, newLeft * CELL_SIZE)) {
+      return;
+    }
+
+    const collidingPlayer = isCollidingWithPlayer(newTop, newLeft);
+    if (collidingPlayer) {
+      return;
     }
 
     const previousPosition = { top: player.top, left: player.left };
@@ -104,7 +238,7 @@ const Game = () => {
         top: newPlayer.top,
         left: newPlayer.left,
         direction: newPlayer.direction,
-        paso1: newPlayer.paso1 // Enviar nuevo atributo
+        paso1: newPlayer.paso1
       }));
     }
 
@@ -118,12 +252,40 @@ const Game = () => {
     event.preventDefault();
   };
 
+  const handleCapture = () => {
+    if (socket) {
+      const capturedThief = players.find(p => p.isThief && Math.abs(p.top - player.top) <= 1 && Math.abs(p.left - player.left) <= 1);
+      if (capturedThief) {
+        socket.send(JSON.stringify({
+          type: 'CAPTURE_THIEF',
+          policeId: player.id,
+          thiefId: capturedThief.id
+        }));
+      }
+    }
+  };
+
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [player]);
+
+  const fetchTopPlayers = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/players/top5');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setTopPlayers(data);
+      } else {
+        setTopPlayers([]);
+      }
+      setShowTopPlayers(true);
+    } catch (error) {
+      console.error('Error fetching top players:', error);
+    }
+  };
 
   const renderMatrix = () => {
     if (!matrix || !Array.isArray(players)) {
@@ -154,13 +316,14 @@ const Game = () => {
               const currentPlayer = players.find(p => p.id === value);
               if (currentPlayer) {
                 components.push(
-                  <Player
+                  <PlayerWithLabel
                     key={`player-${x}-${y}`}
                     x={posX}
                     y={posY}
                     direction={currentPlayer.direction}
                     paso1={currentPlayer.paso1}
                     type={currentPlayer.isThief ? 'thief' : 'police'}
+                    name={currentPlayer.name}
                   />
                 );
               }
@@ -172,10 +335,50 @@ const Game = () => {
     return components;
   };
 
+  const policePlayers = players.filter(player => !player.isThief);
+  const thiefPlayers = players.filter(player => player.isThief);
+
+  const handleGameOverClose = () => {
+    setShowGameOver(false);
+  };
+
   return (
     <div className="game-container">
+      {showGameOver && (
+        <div className="game-over">
+          <div className="game-over-content">
+            <h2>Game Over</h2>
+            <p>Winner: {winner}</p>
+            <button onClick={handleGameOverClose}>Close</button>
+          </div>
+        </div>
+      )}
+      {showTopPlayers && (
+        <div className="top-players">
+          <div className="top-players-content">
+            <h2>Top Players</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPlayers.map((player, index) => (
+                  <tr key={index}>
+                    <td>{player.name}</td>
+                    <td>{player.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button onClick={() => setShowTopPlayers(false)}>Close</button>
+          </div>
+        </div>
+      )}
       <div className="scoreboard">
-        <h2>Scoreboard</h2>
+        <h2>Policías</h2>
         <table>
           <thead>
             <tr>
@@ -185,8 +388,25 @@ const Game = () => {
             </tr>
           </thead>
           <tbody>
-            {players.map((player, index) => (
+            {policePlayers.map((player, index) => (
               <tr key={index}><td>{player.id}</td><td>{player.name}</td><td>{player.score || 0}</td></tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h2>Ladrones</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Score</th>
+              <th>Lives</th>
+            </tr>
+          </thead>
+          <tbody>
+            {thiefPlayers.map((player, index) => (
+              <tr key={index}><td>{player.id}</td><td>{player.name}</td><td>{player.score || 0}</td><td>{player.lives}</td></tr>
             ))}
           </tbody>
         </table>
@@ -197,11 +417,11 @@ const Game = () => {
         </div>
       </div>
       <div className="controls">
-        <button>Button 1</button>
+        <button onClick={fetchTopPlayers}>view scores</button>
         <button>Button 2</button>
         <button>Button 3</button>
       </div>
-      <p>Current Player: {JSON.stringify(player, null, 2)}</p>
+      <p>Time Left: {timeLeft} seconds</p>
     </div>
   );
 };

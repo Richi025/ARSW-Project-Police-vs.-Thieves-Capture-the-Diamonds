@@ -58,3 +58,20 @@ body {
     background-color: #106b93;
     cursor: not-allowed;
 }
+
+.view-scores-button {
+    padding: 10px 20px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 16px;
+    background-color: #fff;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-left: 10px;
+  }
+  
+  .view-scores-button:hover {
+    background-color: #ccc;
+  }

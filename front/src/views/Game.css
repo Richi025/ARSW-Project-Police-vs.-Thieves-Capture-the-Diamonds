@@ -1,83 +1,69 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-body {
-    font-family: 'Press Start 2P', cursive;
-    margin: 0;
-    padding: 0;
-    height: 70vh; /* Aseguramos que el body ocupe toda la altura del viewport */
-    overflow: hidden; /* Evita el scroll */
-}
+/* src/Game.css */
 
 .game-container {
     display: flex;
-    flex-direction: row; /* Distribuye las secciones en una fila */
+    flex-direction: row;
     width: 210vh;
-    height: 100vh; /* Ocupa toda la altura del viewport */
+    height: 100vh;
     background-color: #6dafed;
     color: white;
-    /*background-image: url('../images/background_image.png'); /* Ruta a la imagen guardada */
-
-    background-size: cover; /* Asegura que la imagen cubra todo el fondo */
-    background-repeat: no-repeat; /* Evita la repetición de la imagen */
-
-}
-
-.scoreboard, .game-wrapper, .controls {
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+  
+  .scoreboard, .game-wrapper, .controls {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex: 1; /* Asegura que cada sección ocupe espacio igual */
-}
-
-.scoreboard {
-    /*background-image: url('../images/background_image.png'); *//* Ruta a la imagen guardada */
+    flex: 1;
+  }
+  
+  .scoreboard {
     background-color: #6dafed;
     padding: 20px;
     border-right: 2px;
-    width: 20%; /* Ajusta el ancho del scoreboard */
-}
-
-.scoreboard h2 {
+    width: 20%;
+  }
+  
+  .scoreboard h2 {
     margin-bottom: 20px;
-}
-
-.scoreboard table {
+  }
+  
+  .scoreboard table {
     width: 100%;
     border-collapse: collapse;
-}
-
-.scoreboard th, .scoreboard td {
+  }
+  
+  .scoreboard th, .scoreboard td {
     border: 5px solid white;
     padding: 10px;
     text-align: center;
-}
-
-.game-wrapper {
+  }
+  
+  .game-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 200%; /* Ajusta el ancho del game-wrapper */
-}
-
-.game-board {
+    width: 200%;
+  }
+  
+  .game-board {
     position: relative;
     width: 800px;
     height: 600px;
     background-image: url('../images/ice1_z.jpg');
-    border: 5px solid gold; /* Borde color dorado */
-
-}
-
-.controls {
-    /* background-image: url('../images/background_image.png'); /* Ruta a la imagen guardada */
+    border: 5px solid gold;
+  }
+  
+  .controls {
     background-color: #6dafed;
     padding: 20px;
     border-left: 2px;
-    width: 20%; /* Ajusta el ancho de los controles */
-}
-
-.controls button {
+    width: 20%;
+  }
+  
+  .controls button {
     margin: 10px;
     padding: 10px 20px;
     font-family: 'Press Start 2P', cursive;
@@ -88,8 +74,34 @@ body {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
-}
-
-.controls button:hover {
+  }
+  
+  .controls button:hover {
     background-color: #ccc;
-}
+  }
+  
+  .game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  
+  .game-over-content {
+    background-color: white;
+    color: black;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  
+  .game-over-content button {
+    margin-top: 20px;
+  }
+  

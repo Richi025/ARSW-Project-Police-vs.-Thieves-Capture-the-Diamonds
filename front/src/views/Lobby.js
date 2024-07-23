@@ -6,6 +6,8 @@ import './Lobby.css'; // Importamos un archivo CSS para los estilos adicionales
 const Lobby = () => {
   const [players, setPlayers] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const [topPlayers, setTopPlayers] = useState([]);
+  const [showTopPlayers, setShowTopPlayers] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { playerData } = location.state;
@@ -37,6 +39,21 @@ const Lobby = () => {
     setIsReady(true);
     if (socket) {
       socket.send(JSON.stringify({ type: 'PLAYER_READY' }));
+    }
+  };
+
+  const fetchTopPlayers = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/players/top5');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setTopPlayers(data);
+      } else {
+        setTopPlayers([]);
+      }
+      setShowTopPlayers(true);
+    } catch (error) {
+      console.error('Error fetching top players:', error);
     }
   };
 
@@ -76,8 +93,33 @@ const Lobby = () => {
         </table>
         <div className="button-container">
           <button onClick={handleReady} disabled={isReady} className="ready-button">Ready</button>
+          <button onClick={fetchTopPlayers} className="view-scores-button">View Scores</button>
         </div>
       </div>
+      {showTopPlayers && (
+        <div className="top-players">
+          <div className="top-players-content">
+            <h2>Top Players</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPlayers.map((player, index) => (
+                  <tr key={index}>
+                    <td>{player.name}</td>
+                    <td>{player.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button onClick={() => setShowTopPlayers(false)}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,21 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../WebSocketContext';
 import loginImage from '../images/login.jpg';
-import './Login.css'; // Importamos un archivo CSS para los estilos adicionales
-
-const thiefPositions = [
-    { top: 5, left: 5 },
-    { top: 10, left: 5 },
-    { top: 15, left: 5 },
-    { top: 20, left: 5 }
-];
-
-const policePositions = [
-    { top: 5, left: 10 },
-    { top: 10, left: 10 },
-    { top: 15, left: 10 },
-    { top: 20, left: 10 }
-];
+import './Login.css';
 
 const Login = () => {
     const [name, setName] = useState('');
@@ -25,31 +11,33 @@ const Login = () => {
     const navigate = useNavigate();
     const { setSocket } = useWebSocket();
 
-    const handlePlay = () => {
+    const handlePlay = async () => {
         if (!name.trim()) {
             setError('Name is required');
             return;
         }
 
-        const id = Math.floor(Math.random() * 8) + 1;
-        const position = isThief ? thiefPositions[id % thiefPositions.length] : policePositions[id % policePositions.length];
+        try {
+            const response = await fetch(`http://localhost:8080/login/getPlayerData?isThief=${isThief}`);
+            if (!response.ok) {
+                throw new Error('No available positions');
+            }
 
-        const playerData = {
-            id: id,
-            name: name.trim(),
-            top: position.top,
-            left: position.left,
-            isThief: isThief
-        };
+            const playerData = await response.json();
+            playerData.name = name.trim();
+            playerData.isThief = isThief;
 
-        const socket = new WebSocket('ws://localhost:8080/lobby');
-        socket.onopen = () => {
-            console.log('WebSocket connection established');
-            socket.send(JSON.stringify({ type: 'JOIN', ...playerData }));
-        };
+            const socket = new WebSocket('ws://localhost:8080/lobby');
+            socket.onopen = () => {
+                console.log('WebSocket connection established');
+                socket.send(JSON.stringify({ type: 'JOIN', ...playerData }));
+            };
 
-        setSocket(socket);
-        navigate('/lobby', { state: { playerData: playerData } });
+            setSocket(socket);
+            navigate('/lobby', { state: { playerData: playerData } });
+        } catch (error) {
+            setError('Failed to get player data: ' + error.message);
+        }
     };
 
     return (
@@ -75,7 +63,7 @@ const Login = () => {
                             placeholder="Enter your name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="name-input" // Añadimos una clase para los estilos del input
+                            className="name-input"
                         />
                     </label>
                 </div>

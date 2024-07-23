@@ -3,6 +3,8 @@ package edu.escuelaing.arsw.ASE.back.controller;
 import edu.escuelaing.arsw.ASE.back.model.Player;
 import edu.escuelaing.arsw.ASE.back.model.GameMatrix;
 import edu.escuelaing.arsw.ASE.back.service.GameService;
+import edu.escuelaing.arsw.ASE.back.service.PlayerService;
+
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,8 @@ import java.util.Map;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @Component
 public class WebSocketController extends TextWebSocketHandler {
@@ -26,12 +30,21 @@ public class WebSocketController extends TextWebSocketHandler {
     private static final ConcurrentHashMap<String, Boolean> playerReadyStatus = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Player> players = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, int[]> initialPositions = new ConcurrentHashMap<>();
     private static final int totalPlayers = 2;  // Número total de jugadores necesarios para comenzar el juego
     private static final Gson gson = new Gson();
     private static final GameMatrix gameState = new GameMatrix(); // Única instancia compartida de GameMatrix
+    private boolean gameOver = false;
+    private String winner = "";
 
     @Autowired
     private GameService gameService;
+
+    private Timer timer;
+    private int timeLeft = 180; // Tiempo en segundos
+
+    @Autowired
+    private PlayerService playerService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -51,7 +64,7 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        if (!session.isOpen()) {
+        if (!session.isOpen() || gameOver) {
             return;
         }
 
@@ -73,6 +86,8 @@ public class WebSocketController extends TextWebSocketHandler {
             }
         } else if ("PLAYER_MOVE".equals(data.get("type"))) {
             handlePlayerMoveMessage(data, session);
+        } else if ("CAPTURE_THIEF".equals(data.get("type"))) {
+            handleCaptureThiefMessage(data, session);
         } else {
             sendGameStateToAllSessions();
         }
@@ -115,6 +130,8 @@ public class WebSocketController extends TextWebSocketHandler {
                         playerStatus.put("isThief", player.isThief());
                         playerStatus.put("direction", player.getDirection());
                         playerStatus.put("paso1", player.getPaso1()); // Incluir nuevo atributo
+                        playerStatus.put("score", player.getScore()); // Incluir nuevo atributo
+                        playerStatus.put("lives", player.getLives()); // Incluir vidas
                         synchronized (playerReadyStatus) {
                             playerStatus.put("isReady", playerReadyStatus.get(session.getId()));
                         }
@@ -135,8 +152,8 @@ public class WebSocketController extends TextWebSocketHandler {
 
     private boolean allPlayersReady() {
         synchronized (playerReadyStatus) {
-            boolean allReady = playerReadyStatus.size() == totalPlayers &&
-                               playerReadyStatus.values().stream().allMatch(Boolean::booleanValue);
+            boolean allReady = playerReadyStatus.size() >= totalPlayers &&
+                    playerReadyStatus.values().stream().allMatch(Boolean::booleanValue);
             System.out.println("All players ready: " + allReady);
             return allReady;
         }
@@ -150,6 +167,12 @@ public class WebSocketController extends TextWebSocketHandler {
         gameService.initializePlayers(currentPlayers);
         gameState.placePlayers(currentPlayers);  // Colocar los jugadores en la matriz de juego
 
+        for (Player player : currentPlayers) {
+            initialPositions.put(player.getId(), new int[]{player.getTop(), player.getLeft()});
+        }
+
+        startTimer();
+
         String initialMatrixJson = convertMatrixToJson(gameState);
         //System.out.println("Initial Game Matrix: " + initialMatrixJson); // Print the initial game matrix to the console
 
@@ -162,14 +185,116 @@ public class WebSocketController extends TextWebSocketHandler {
         sendToAllSessions(jsonMessage);
     }
 
+    private void startTimer() {
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (gameOver) {
+                    timer.cancel();
+                } else {
+                    updateTime();
+                }
+            }
+        }, 1000, 1000);
+    }
+
+    private void updateTime() {
+        synchronized (sessions) {
+            if (gameOver) {
+                return;
+            }
+
+            boolean allDiamondsCaptured = true;
+            for (int[] row : gameState.getMatrix()) {
+                for (int cell : row) {
+                    if (cell == 9) {
+                        allDiamondsCaptured = false;
+                        break;
+                    }
+                }
+                if (!allDiamondsCaptured) {
+                    break;
+                }
+            }
+
+            if (allDiamondsCaptured) {
+                gameOver = true;
+                winner = "Thieves";
+                sendGameOverMessage();
+                return;
+            }
+
+            int totalThiefLives = 0;
+            int totalPoliceScore = 0;
+            int totalThiefScore = 0;
+
+            for (Player player : players.values()) {
+                if (player.isThief()) {
+                    totalThiefLives += player.getLives();
+                    totalThiefScore += player.getScore();
+                } else {
+                    totalPoliceScore += player.getScore();
+                }
+            }
+
+            if (totalThiefLives == 0) {
+                gameOver = true;
+                winner = "Police";
+                sendGameOverMessage();
+                return;
+            }
+
+            if (--timeLeft <= 0) {
+                gameOver = true;
+                if (totalPoliceScore > totalThiefScore) {
+                    winner = "Police";
+                } else if (totalThiefScore > totalPoliceScore) {
+                    winner = "Thieves";
+                } else {
+                    winner = "Draw";
+                }
+                sendGameOverMessage();
+            } else {
+                sendTimerUpdate();
+            }
+        }
+    }
+
+    private void sendTimerUpdate() {
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "TIMER_UPDATE");
+        message.put("timeLeft", timeLeft);
+        String jsonMessage = gson.toJson(message);
+        sendToAllSessions(jsonMessage);
+    }
+
+    private void sendGameOverMessage() {
+        timer.cancel();
+        updatePlayerScores();
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "GAME_OVER");
+        message.put("winner", winner);
+        String jsonMessage = gson.toJson(message);
+        sendToAllSessions(jsonMessage);
+    }
+
+    private void updatePlayerScores() {
+        for (Player player : players.values()) {
+            playerService.updateScore(player.getMongoId(), player.getScore());
+        }
+    }
+
     private void handleJoinMessage(Map<String, Object> data, WebSocketSession session) {
         int playerId = ((Double) data.get("id")).intValue();
         String playerName = (String) data.get("name");
         int top = ((Double) data.get("top")).intValue();
         int left = ((Double) data.get("left")).intValue();
         boolean isThief = (Boolean) data.get("isThief");
-
+        System.out.println(isThief);
         Player player = new Player(playerId, playerName, top, left, isThief);
+        playerService.save(player);
+
 
         synchronized (players) {
             // Ensure the player ID is unique
@@ -212,6 +337,16 @@ public class WebSocketController extends TextWebSocketHandler {
                 player.setLeft(left);
                 player.setDirection(direction);
                 player.setPaso1(paso1); // Actualizar nuevo atributo
+
+                if (player.isThief() && player.getLives() == 0) {
+                    return; // Ladrones sin vidas no pueden moverse
+                }
+
+                if (gameState.getMatrix()[top][left] == 9  && player.isThief() ) { // Si el jugador recoge un diamante
+                    player.setScore(player.getScore() + 100);
+                    gameState.setPosition(top, left, 0); // Eliminar el diamante de la matriz
+                }
+
                 gameService.updatePlayerPosition(player);
             }
         }
@@ -226,7 +361,78 @@ public class WebSocketController extends TextWebSocketHandler {
         sendGameStateToAllSessions();
     }
     
+    private void handleCaptureThiefMessage(Map<String, Object> data, WebSocketSession session) throws Exception {
+        int policeId = ((Double) data.get("policeId")).intValue();
+        int thiefId = ((Double) data.get("thiefId")).intValue();
     
+        System.out.println("Captura del ladrón " + thiefId + " por el policía " + policeId);
+    
+        synchronized (players) {
+            Player police = null;
+            Player thief = null;
+    
+            for (Player p : players.values()) {
+                if (p.getId() == thiefId) {
+                    thief = p;
+                }
+                if (p.getId() == policeId) {
+                    police = p;
+                }
+                if (thief != null && police != null) {
+                    break;
+                }
+            }
+    
+            if (thief != null) {
+                thief.setLives(thief.getLives() - 1);
+                int[] initialPosition = initialPositions.get(thiefId);
+                if (initialPosition != null) {
+                    int previousTop = thief.getTop();
+                    int previousLeft = thief.getLeft();
+    
+                    thief.setTop(initialPosition[0]);
+                    thief.setLeft(initialPosition[1]);
+    
+                    // Actualizar la posición en la matriz
+                    synchronized (gameState) {
+                        gameState.setPosition(previousTop, previousLeft, 0); // Limpiar la posición anterior
+                        gameState.setPosition(initialPosition[0], initialPosition[1], thiefId); // Establecer nueva posición
+                    }
+    
+                    gameService.updatePlayerPosition(thief);
+                    sendInitialPositions(thief);
+                }
+    
+                // Sumar 100 puntos al policía que captura
+                if (police != null) {
+                    police.setScore(police.getScore() + 100);
+                    gameService.updatePlayerPosition(police);
+                }
+            }
+        }
+    
+        sendGameStateToAllSessions();
+    }
+
+    private void sendInitialPositions(Player thief) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "INITIAL_POSITION");
+        message.put("id", thief.getId());
+        message.put("top", thief.getTop());
+        message.put("left", thief.getLeft());
+        String jsonMessage = gson.toJson(message);
+
+        synchronized (sessions) {
+            for (WebSocketSession session : sessions) {
+                try {
+                    session.sendMessage(new TextMessage(jsonMessage));
+                } catch (IOException e) {
+                    System.err.println("Error sending initial position to session: " + session.getId());
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     private String convertMatrixToJson(GameMatrix matrix) {
         return gson.toJson(matrix);
@@ -305,5 +511,5 @@ public class WebSocketController extends TextWebSocketHandler {
     
         sendToAllSessions(jsonMessage);
     }
-    
 }
+
