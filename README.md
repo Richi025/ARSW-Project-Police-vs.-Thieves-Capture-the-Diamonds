@@ -1,7 +1,7 @@
 
 # Project: Police vs. Thieves: Capture the Diamonds
 
-This proyect is a real-time multiplayer game where players are divided into two teams: police and thieves. The objective is to win the match by either eliminating players from the opposing team by handcuffing them (in the case of the police) or capturing the majority of the diamonds located on the track (in the case of the thieves). The game takes place in an obstacle-filled environment.
+This project is a real-time multiplayer game where players are divided into two teams: cops and robbers. The objective is to win the match by eliminating the opposing team's players by handcuffing them (in the case of the police) or capturing the majority of the diamonds located on the track (in the case of the thieves). The game takes place in an environment full of obstacles. The players' movements are made with the dates and the police capture them with the space key.
 
 ### Key Features
 - **Real-time Multiplayer:** Support for N players divided into two teams.
@@ -322,14 +322,13 @@ Class tests were carried out **LoginController**, **PlayerController**, **GameSe
 
     + **docker ps -a**
 
-```
-CONTAINER ID   IMAGE              COMMAND                  CREATED        STATUS                    PORTS                     NAMES
-b624c2c56db5   sonarqube:latest   "/opt/sonarqube/dock…"   3 hours ago    Up 2 hours                0.0.0.0:9000->9000/tcp    sonarqube
-24b5ed30f14c   redis              "docker-entrypoint.s…"   3 hours ago    Up 2 hours                0.0.0.0:45000->6379/tcp   some-redis
+    ```
+    CONTAINER ID   IMAGE              COMMAND                  CREATED        STATUS                    PORTS                     NAMES
+    b624c2c56db5   sonarqube:latest   "/opt/sonarqube/dock…"   3 hours ago    Up 2 hours                0.0.0.0:9000->9000/tcp    sonarqube
 
-```
+    ```
 
-![alt text](images/imagetest3.png)
+    ![alt text](images/doker.png)
 
 
 2. Then to see the coverage with Jacoco and Sonar we use the following command.
@@ -359,7 +358,7 @@ Now we enter the following link to see Sonar:
 
 http://localhost:9000/dashboard?id=interactiveblackboard&codeScope=overall
 
-![alt text](images/imagete.png) 
+![alt text](images/sonar.png) 
 
 ## Built with
 

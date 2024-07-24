@@ -476,7 +476,7 @@ public class WebSocketController extends TextWebSocketHandler {
     
 
                 if (police != null) {
-                    police.setScore(police.getScore() + 100);
+                    police.setScore(police.getScore() + 500);
                     gameService.updatePlayerPosition(police);
                 }
             }
@@ -590,7 +590,7 @@ public class WebSocketController extends TextWebSocketHandler {
 
         sendToAllSessions(jsonMessage);
     }
-    
+
     /**
      * Sends the updated game state to all sessions.
      *

@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"edu.escuelaing.arsw.ASE.back"},{"l":"edu.escuelaing.arsw.ASE.back.config"},{"l":"edu.escuelaing.arsw.ASE.back.controller"},{"l":"edu.escuelaing.arsw.ASE.back.model"},{"l":"edu.escuelaing.arsw.ASE.back.repository"},{"l":"edu.escuelaing.arsw.ASE.back.service"}];updateSearchResults();
