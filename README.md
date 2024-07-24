@@ -4,7 +4,7 @@
 This project is a real-time multiplayer game where players are divided into two teams: cops and robbers. The objective is to win the match by eliminating the opposing team's players by handcuffing them (in the case of the police) or capturing the majority of the diamonds located on the track (in the case of the thieves). The game takes place in an environment full of obstacles. The players' movements are made with the dates and the police capture them with the space key.
 
 ### Key Features
-- **Real-time Multiplayer:** Support for N players divided into two teams.
+- **Real-time Multiplayer:** Support for 8 players divided into two teams.
 - **Team Division:** Random or player-selected team assignments.
 - **Obstacle-filled Environment:** Track with indestructible obstacles where players can take cover.
 - **Eliminations:** Players can handcuff thieves a maximum of 3 times per thief to eliminate opponents, which gives points.
