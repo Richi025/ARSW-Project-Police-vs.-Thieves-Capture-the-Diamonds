@@ -45,7 +45,7 @@ Download Java at https://www.java.com/es/download/ie_manual.jsp
 Download Node.js at https://nodejs.org/en
 ```
 
-### Installing
+## Installing
 
 Once you have the cloned project in your repository. Follow the steps below to launch the program successfully.
 
@@ -91,7 +91,21 @@ Once you have the cloned project in your repository. Follow the steps below to l
 
     http://localhost:3000/ 
 
-    ![alt text](images/local3000.png)
+    Now you enter the player's name and choose whether he is a policeman or a thief.
+
+    ![alt text](images/login.png)
+
+    Once the play button is pressed, it takes them to the lobby where they wait for all the players to be ready.
+
+    ![alt text](images/lobby.png)
+
+    When everyone is ready, you can start playing.
+
+    ![alt text](images/play.png)
+
+    If you want to see the top scores use the view scores button
+
+    ![alt text](images/scores.png)
 
 ## Proyect Structure
 
@@ -227,9 +241,125 @@ Once you have the cloned project in your repository. Follow the steps below to l
 + **Browser** runs the React components on port 3000.
 
 
-## AWS
+## Deployment in AWS
 
-**The application is being implemented**
+To start the deployment, you have to open a console in the folder where you have the keys.
+
+1. Upload the back JAR to AWS
+    ```
+    sftp -i /path/to/your-key.pem ec2-user@your-ec2-instance.amazonaws.com
+
+    put back.jar
+    ```
+2. Upload the compressed Front folder to AWS
+
+    ```
+    sftp -i /path/to/your-key.pem ec2-user@your-ec2-instance.amazonaws.com
+
+    put front.zip
+    ```
+3. Unzip the folder with the command
+    ```
+    unzip front.zip
+    ```
+4. Install node.js on AWS
+    ```
+    sudo yum install -y nodejs
+    ```
+5. Run the back JAR
+    ```
+    java -jar your-backend.jar
+    ```
+6. Install the front dependencies
+
+    ```
+    npm install
+    ```
+
+7. Run the front
+    ```
+    npm start
+    ```
+
+8.  Now with the following link you can enter the game.
+
+    keep in mind that the url changes every time the AWS instance is turned on
+
+    http://ec2-user@your-ec2-instance.amazonaws.com:3000/ 
+
+    In this case it was used.
+
+    http://ec2-54-152-209-165.compute-1.amazonaws.com:3000/ 
+
+    Now you enter the player's name and choose whether he is a policeman or a thief.
+
+    ![alt text](images/LoginAWS.png)
+
+    Once the play button is pressed, it takes them to the lobby where they wait for all the players to be ready.
+
+    ![alt text](images/lobbyAWS.png)
+
+    When everyone is ready, you can start playing.
+
+    ![alt text](images/playAWS.png)
+
+    If you want to see the top scores use the view scores button.
+
+    ![alt text](images/GameMULTI.png)
+
+
+# Unit Test
+
+Class tests were carried out **LoginController**, **PlayerController**, **GameService** and **PlayerService** .
+
+![alt text](images/testspring.png)
+
+1. We run the containers in docker with the following commands.
+
+    + **docker pull sonarqube**
+
+    + **docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest**
+
+    + **docker ps -a**
+
+```
+CONTAINER ID   IMAGE              COMMAND                  CREATED        STATUS                    PORTS                     NAMES
+b624c2c56db5   sonarqube:latest   "/opt/sonarqube/dock…"   3 hours ago    Up 2 hours                0.0.0.0:9000->9000/tcp    sonarqube
+24b5ed30f14c   redis              "docker-entrypoint.s…"   3 hours ago    Up 2 hours                0.0.0.0:45000->6379/tcp   some-redis
+
+```
+
+![alt text](images/imagetest3.png)
+
+
+2. Then to see the coverage with Jacoco and Sonar we use the following command.
+
+    + Log in to sonar localhost:9000 change the password, the default username and password is admin.
+
+    + Enter the account options.
+
+    + Once the sonar is running, you must generate a token
+
+    + Run the following command:
+    ```
+    mvn verify sonar:sonar -D sonar.token=[GENERATED_TOKEN]
+    ```
+
+    Now you enter the following path to see the JaCoCo report:
+    ```
+     target/site/jacoco/index.html
+    ``` 
+
+
+    ![alt text](images/jacoco.png) 
+
+Now we enter the following link to see Sonar:
+
+
+
+http://localhost:9000/dashboard?id=interactiveblackboard&codeScope=overall
+
+![alt text](images/imagete.png) 
 
 ## Built with
 
@@ -244,6 +374,12 @@ Once you have the cloned project in your repository. Follow the steps below to l
 - **Docker:** Platform for developing, shipping, and running applications in containers.
 - **Jacoco:** Code coverage library for Java.
 - **SonarQube:** Continuous inspection tool for code quality.
+
+### Design patterns
+
+#### Singleton
+
+The singleton design pattern was used in order to maintain a single instance of the initial matrix that manages the game state.
 
 ## Versioned
 
